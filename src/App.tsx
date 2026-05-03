@@ -54,17 +54,34 @@ export default function App() {
   const [confirmData, setConfirmData] = useState<any>(null);
   const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
   
+  const [isBackupReminderOpen, setIsBackupReminderOpen] = useState(false);
+  
   // Refs
   const priceSnapshotRef = useRef<HTMLDivElement>(null);
 
-  // Load Data
+  // Load Data & Initial Daily Backup Reminder
   useEffect(() => {
     const savedPurchases = localStorage.getItem('emas_purchases');
     const savedSales = localStorage.getItem('emas_sales');
     const savedPrices = localStorage.getItem('emas_prices');
     const savedPin = localStorage.getItem('emas_pin');
 
-    if (savedPurchases) setPurchases(JSON.parse(savedPurchases));
+    const purchasesData = savedPurchases ? JSON.parse(savedPurchases) : [];
+    const salesData = savedSales ? JSON.parse(savedSales) : [];
+
+    if (savedPurchases) setPurchases(purchasesData);
+    if (savedSales) setSales(salesData);
+    if (savedPrices) setGoldPrices(JSON.parse(savedPrices));
+    if (savedPin) setPin(savedPin);
+
+    // Initial Daily Backup Reminder logic
+    const lastBackup = localStorage.getItem('emas_last_backup');
+    const today = new Date().toISOString().split('T')[0];
+    // Only remind if there is data and it hasn't been backed up today
+    if (lastBackup !== today && (purchasesData.length > 0 || salesData.length > 0)) {
+      const timer = setTimeout(() => setIsBackupReminderOpen(true), 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   // Save Data
@@ -241,6 +258,19 @@ export default function App() {
     }
   };
 
+  const handleBackupAccept = () => {
+    exportToExcel();
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('emas_last_backup', today);
+    setIsBackupReminderOpen(false);
+  };
+
+  const handleBackupDecline = () => {
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('emas_last_backup', today);
+    setIsBackupReminderOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 mb-16 md:mb-0">
       {/* Sidebar Navigation - Hidden on Mobile */}
@@ -388,6 +418,12 @@ export default function App() {
         truePin={pin}
         onClose={() => setIsPinDialogOpen(false)} 
         onSuccess={handlePinSuccess}
+      />
+
+      <BackupReminderDialog 
+        isOpen={isBackupReminderOpen}
+        onClose={handleBackupDecline}
+        onConfirm={handleBackupAccept}
       />
 
       <ConfirmDialog 
@@ -646,7 +682,7 @@ function SalesModule({ sales, purchases, onAdd, onDelete }: { sales: Sale[], pur
 }
 
 function RecapModule({ purchases, sales }: { purchases: Purchase[], sales: Sale[] }) {
-  const [timeFilter, setTimeFilter] = useState<'month' | 'year' | 'item'>('month');
+  const [timeFilter, setTimeFilter] = useState<'month' | 'year'>('month');
 
   const stats = useMemo(() => {
     const totalBuy = purchases.reduce((acc, curr) => acc + curr.price, 0);
@@ -665,8 +701,6 @@ function RecapModule({ purchases, sales }: { purchases: Purchase[], sales: Sale[
         key = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
       } else if (timeFilter === 'year') {
         key = date.getFullYear().toString();
-      } else if (timeFilter === 'item') {
-        key = s.serialNumber;
       }
 
       if (!groups[key]) {
@@ -677,19 +711,7 @@ function RecapModule({ purchases, sales }: { purchases: Purchase[], sales: Sale[
       groups[key].count += 1;
     });
 
-    // Add purchase stats to items if item filter
-    if (timeFilter === 'item') {
-      purchases.forEach(p => {
-        const key = p.serialNumber;
-        if (!groups[key]) {
-          groups[key] = { buy: 0, sell: 0, profit: 0, count: 0 };
-        }
-        groups[key].buy += p.price;
-      });
-    }
-
     return Object.entries(groups).sort((a, b) => {
-      if (timeFilter === 'item') return a[0].localeCompare(b[0]);
       return b[0].localeCompare(a[0]);
     });
   }, [sales, purchases, timeFilter]);
@@ -731,16 +753,16 @@ function RecapModule({ purchases, sales }: { purchases: Purchase[], sales: Sale[
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <h2 className="text-xl font-bold">Rekapitulasi Laporan</h2>
           <div className="flex bg-slate-100 p-1 rounded-xl">
-            {(['month', 'year', 'item'] as const).map(f => (
+            {(['month', 'year'] as const).map(f => (
               <button 
                 key={f}
                 onClick={() => setTimeFilter(f)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-bold transition-all capitalize",
+                  "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                   timeFilter === f ? "bg-white shadow text-gold-600" : "text-slate-500 hover:text-slate-700"
                 )}
               >
-                {f === 'item' ? 'Per Item' : `Per ${f}`}
+                {`Per ${f === 'month' ? 'Bulan' : 'Tahun'}`}
               </button>
             ))}
           </div>
@@ -1162,6 +1184,43 @@ function StatCard({ label, value, color, icon: Icon, labelColor, valueColor }: {
       <div className={cn("p-3 rounded-2xl", iconColors[color])}>
         <Icon size={24} strokeWidth={2.5} />
       </div>
+    </div>
+  );
+}
+
+function BackupReminderDialog({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border border-gold-100"
+      >
+        <div className="w-20 h-20 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-sm border border-amber-100">
+          <FileSpreadsheet size={40} />
+        </div>
+        <h3 className="text-2xl font-black mb-3 text-slate-800">Backup Data Harian</h3>
+        <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+          Pagi! Demi keamanan data Anda, sangat disarankan untuk melakukan backup data ke Excel setiap hari. <span className="font-bold text-slate-700">Backup sekarang?</span>
+        </p>
+        
+        <div className="flex flex-col gap-3">
+          <button 
+            onClick={onConfirm} 
+            className="w-full py-4 gold-gradient text-white rounded-2xl font-black text-lg shadow-xl shadow-gold-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            IYA, BACKUP SEKARANG
+          </button>
+          <button 
+            onClick={onClose} 
+            className="w-full py-3 text-slate-400 hover:text-slate-600 font-bold transition-colors"
+          >
+            Nanti Saja
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
