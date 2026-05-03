@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gold-50: #fffdf0;
+  --color-gold-100: #fff9cf;
+  --color-gold-200: #fff0a1;
+  --color-gold-300: #ffe16b;
+  --color-gold-400: #ffcd36;
+  --color-gold-500: #fdb10e;
+  --color-gold-600: #e28e08;
+  --color-gold-700: #bc6909;
+  --color-gold-800: #93510f;
+  --color-gold-900: #7a4311;
+  --color-gold-950: #462205;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #fdb10e 0%, #e28e08 100%);
+}
+
+.luxury-card {
+  @apply bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.dark .luxury-card {
+  @apply bg-slate-900 border-slate-800 shadow-none;
+}

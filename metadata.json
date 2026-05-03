@@ -1,0 +1,12 @@
+{
+  "name": "Rumaisha Shop",
+  "description": "Aplikasi rekap transaksi emas dan perhiasan dengan fitur monitoring harga dan keamanan PIN.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "data_export",
+    "security_pin",
+    "inventory_tracking"
+  ]
+}
