@@ -650,6 +650,7 @@ function SalesModule({ sales, purchases, onAdd, onDelete }: { sales: Sale[], pur
               <tr className="border-b border-slate-100 italic text-black">
                 <th className="py-4 font-normal">Tanggal</th>
                 <th className="py-4 font-normal">No Seri / Berat</th>
+                <th className="py-4 font-normal">Pembeli</th>
                 <th className="py-4 font-normal">Harga Jual</th>
                 <th className="py-4 font-normal">Keuntungan</th>
                 <th className="py-4 font-normal">Aksi</th>
@@ -663,6 +664,7 @@ function SalesModule({ sales, purchases, onAdd, onDelete }: { sales: Sale[], pur
                     <div className="font-bold">{s.serialNumber}</div>
                     <div className="text-xs text-slate-400">{s.weight} gram</div>
                   </td>
+                  <td className="py-4 text-slate-700 font-medium">{s.buyerName || '-'}</td>
                   <td className="py-4 font-medium">{formatCurrency(s.sellingPrice)}</td>
                   <td className="py-4 text-green-600 font-bold">+{formatCurrency(s.profit)}</td>
                   <td className="py-4">
