@@ -46,6 +46,9 @@ function getExportFilename(prefix, extension) {
 
 // App Initialization
 async function initApp() {
+    // Load Vercel remote environment variables
+    await db.loadRemoteConfig();
+
     // 1. Setup Status DB
     updateDatabaseStatusUI();
 

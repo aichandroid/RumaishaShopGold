@@ -36,7 +36,27 @@ const MOCK_PENJUALAN = [
 export class GoldDatabase {
     constructor() {
         this.supabaseClient = null;
+        this.supabaseUrl = "";
+        this.supabaseKey = "";
         this.initLocalData();
+    }
+
+    // Load remote configuration from Vercel Serverless API
+    async loadRemoteConfig() {
+        try {
+            const res = await fetch("/api/config");
+            if (res.ok) {
+                const data = await res.json();
+                if (data.url && data.key) {
+                    this.supabaseUrl = data.url;
+                    this.supabaseKey = data.key;
+                    this.supabaseClient = null; // force reload client
+                    this.getSupabase();
+                }
+            }
+        } catch (e) {
+            console.log("Remote config fetch failed (running locally):", e);
+        }
     }
 
     // Initialize LocalStorage with mock data if empty
@@ -57,8 +77,8 @@ export class GoldDatabase {
 
     // Get settings
     getCredentials() {
-        const url = localStorage.getItem("rumaisho_supabase_url") || "";
-        const key = localStorage.getItem("rumaisho_supabase_key") || "";
+        const url = this.supabaseUrl || localStorage.getItem("rumaisho_supabase_url") || "";
+        const key = this.supabaseKey || localStorage.getItem("rumaisho_supabase_key") || "";
         return { url, key };
     }
 

@@ -304,6 +304,10 @@
 
             <div class="glass-card settings-section">
                 <h3><i class="fa-solid fa-cloud-arrow-up"></i> Konfigurasi Database Supabase</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--tosca);"></i> 
+                    Di Vercel, konfigurasi database akan dibaca otomatis secara aman dari **Environment Variables** (tidak perlu diisi di sini). Form di bawah ini hanya digunakan untuk simulasi pengembangan lokal (Offline Dev).
+                </p>
                 <div class="form-group">
                     <label>Supabase URL</label>
                     <input type="text" id="settings-db-url" class="form-input" placeholder="https://xxxxxxxx.supabase.co">
@@ -360,6 +364,24 @@ CREATE TABLE settings (
 );
 
 INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NOTHING;
+
+-- ==========================================================
+-- JIKA MENGALAMI ERROR: 'violates row-level security policy'
+-- ==========================================================
+-- Supabase secara default memblokir akses tulis anonim jika RLS aktif.
+-- Jalankan SALAH SATU pilihan di bawah ini di SQL Editor Supabase Anda:
+
+-- Pilihan A (Paling Mudah): Nonaktifkan RLS pada seluruh tabel
+ALTER TABLE pembelian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE penjualan DISABLE ROW LEVEL SECURITY;
+ALTER TABLE harga_emas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+
+-- Pilihan B (Alternatif): Buat Policy agar Key Anon bisa membaca & menulis
+-- CREATE POLICY "Akses Publik Pembelian" ON pembelian FOR ALL TO anon USING (true) WITH CHECK (true);
+-- CREATE POLICY "Akses Publik Penjualan" ON penjualan FOR ALL TO anon USING (true) WITH CHECK (true);
+-- CREATE POLICY "Akses Publik Harga Emas" ON harga_emas FOR ALL TO anon USING (true) WITH CHECK (true);
+-- CREATE POLICY "Akses Publik Settings" ON settings FOR ALL TO anon USING (true) WITH CHECK (true);
                 </pre>
             </div>
         </div>
