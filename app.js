@@ -1437,14 +1437,15 @@ function processImportData(data, type, fileInput) {
 
             const dateStrRaw = dateVal ? String(dateVal).trim() : "";
             const serialStrRaw = serialVal ? String(serialVal).trim() : "";
+            const hargaBeli = cleanPrice(hargaVal);
 
-            // Skip blank/empty/summary rows (e.g. missing crucial transaction identifiers like Date or Serial Number)
-            if (!dateStrRaw || !serialStrRaw) {
+            // Skip blank/empty/summary rows or if harga_beli is 0
+            if (!dateStrRaw || !serialStrRaw || hargaBeli === 0) {
                 return; // Skip silently
             }
 
-            if (hargaVal === undefined || !penjualVal) {
-                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap (Harga Beli atau Nama Penjual kosong).\n`;
+            if (!penjualVal) {
+                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap (Nama Penjual kosong).\n`;
                 return;
             }
 
@@ -1456,7 +1457,7 @@ function processImportData(data, type, fileInput) {
             validRecords.push({
                 tanggal: dateStr,
                 no_seri: serialStrRaw.toUpperCase(),
-                harga_beli: cleanPrice(hargaVal),
+                harga_beli: hargaBeli,
                 nama_penjual: String(penjualVal).trim()
             });
         });
@@ -1476,8 +1477,12 @@ function processImportData(data, type, fileInput) {
             const serialStrRaw = serialVal ? String(serialVal).trim() : "";
             const cleanGramVal = cleanGram(gramVal);
 
-            // Skip blank, summary, total, or zero-gram rows silently
-            if (!dateStrRaw || !serialStrRaw || cleanGramVal === 0) {
+            const hargaJual = cleanPrice(jualVal);
+            const hargaRestok = cleanPrice(restokVal);
+            const keuntungan = untungVal !== undefined ? cleanPrice(untungVal) : (hargaJual - hargaRestok);
+
+            // Skip blank, summary, total, zero-gram, or zero-value (prices & profit) rows silently
+            if (!dateStrRaw || !serialStrRaw || cleanGramVal === 0 || (hargaJual === 0 && hargaRestok === 0 && keuntungan === 0)) {
                 return; // Skip silently
             }
 
@@ -1490,10 +1495,6 @@ function processImportData(data, type, fileInput) {
             if (!isNaN(dateVal) && Number(dateVal) > 40000) {
                 dateStr = ExcelDateToJSDate(Number(dateVal));
             }
-
-            const hargaJual = cleanPrice(jualVal);
-            const hargaRestok = cleanPrice(restokVal);
-            const keuntungan = untungVal !== undefined ? cleanPrice(untungVal) : (hargaJual - hargaRestok);
 
             validRecords.push({
                 tanggal: dateStr,
