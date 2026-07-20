@@ -1435,15 +1435,16 @@ function processImportData(data, type, fileInput) {
             const hargaVal = row["Harga Beli (IDR)"] || row["Harga Beli"];
             const penjualVal = row["Nama Penjual"] || row["Penjual"];
 
-            // Skip empty rows (blank rows or header formatting residue)
             const dateStrRaw = dateVal ? String(dateVal).trim() : "";
             const serialStrRaw = serialVal ? String(serialVal).trim() : "";
-            if (!dateStrRaw && !serialStrRaw) {
-                return; // Skip empty row silently
+
+            // Skip blank/empty/summary rows (e.g. missing crucial transaction identifiers like Date or Serial Number)
+            if (!dateStrRaw || !serialStrRaw) {
+                return; // Skip silently
             }
 
-            if (!dateVal || !serialVal || hargaVal === undefined || !penjualVal) {
-                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap.\n`;
+            if (hargaVal === undefined || !penjualVal) {
+                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap (Harga Beli atau Nama Penjual kosong).\n`;
                 return;
             }
 
@@ -1454,7 +1455,7 @@ function processImportData(data, type, fileInput) {
 
             validRecords.push({
                 tanggal: dateStr,
-                no_seri: String(serialVal).trim().toUpperCase(),
+                no_seri: serialStrRaw.toUpperCase(),
                 harga_beli: cleanPrice(hargaVal),
                 nama_penjual: String(penjualVal).trim()
             });
@@ -1471,15 +1472,17 @@ function processImportData(data, type, fileInput) {
             const restokVal = row["Harga Restok (IDR)"] || row["Harga Restok"];
             const untungVal = row["Keuntungan (IDR)"] || row["Keuntungan"];
 
-            // Skip empty rows
             const dateStrRaw = dateVal ? String(dateVal).trim() : "";
             const serialStrRaw = serialVal ? String(serialVal).trim() : "";
-            if (!dateStrRaw && !serialStrRaw) {
-                return; // Skip empty row silently
+            const cleanGramVal = cleanGram(gramVal);
+
+            // Skip blank, summary, total, or zero-gram rows silently
+            if (!dateStrRaw || !serialStrRaw || cleanGramVal === 0) {
+                return; // Skip silently
             }
 
-            if (!dateVal || gramVal === undefined || !serialVal || !pembeliVal || jualVal === undefined || restokVal === undefined) {
-                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap.\n`;
+            if (!pembeliVal || jualVal === undefined || restokVal === undefined) {
+                errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap (Nama Pembeli, Harga Jual, atau Harga Restok kosong).\n`;
                 return;
             }
 
@@ -1494,8 +1497,8 @@ function processImportData(data, type, fileInput) {
 
             validRecords.push({
                 tanggal: dateStr,
-                gramasi: cleanGram(gramVal),
-                no_seri: String(serialVal).trim().toUpperCase(),
+                gramasi: cleanGramVal,
+                no_seri: serialStrRaw.toUpperCase(),
                 nama_pembeli: String(pembeliVal).trim(),
                 harga_jual: hargaJual,
                 harga_restok: hargaRestok,
