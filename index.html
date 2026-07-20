@@ -1,29 +1,571 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rumaisha Shop - Inventory Emas</title>
-    <script>
-      (function() {
-        try {
-          const property = Object.getOwnPropertyDescriptor(window, 'fetch');
-          if (property && !property.writable && !property.set && property.configurable) {
-            const originalFetch = window.fetch;
-            Object.defineProperty(window, 'fetch', {
-              get() { return originalFetch; },
-              set() { console.warn('Something tried to override fetch, update blocked.'); },
-              configurable: true,
-              enumerable: true
-            });
-          }
-        } catch (e) {}
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rumaisho Gold Shop - Rekap Pembelian & Penjualan Emas</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- External Libraries CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    
+    <!-- Background Glow Effects -->
+    <div class="bg-glow" id="glow-top-left"></div>
+    <div class="bg-glow" id="glow-bottom-right"></div>
 
+    <!-- Sidebar Navigation -->
+    <aside>
+        <div class="logo-container">
+            <img src="logo.jpg" alt="Rumaisho Shop Logo" class="app-logo">
+            <div class="logo-text">RUMAISHO GOLD</div>
+        </div>
+        
+        <ul class="nav-links">
+            <li class="nav-item active" data-tab="dashboard">
+                <button><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+            </li>
+            <li class="nav-item" data-tab="pembelian">
+                <button><i class="fa-solid fa-cart-shopping"></i> Pembelian</button>
+            </li>
+            <li class="nav-item" data-tab="penjualan">
+                <button><i class="fa-solid fa-hand-holding-dollar"></i> Penjualan</button>
+            </li>
+            <li class="nav-item" data-tab="harga-emas">
+                <button><i class="fa-solid fa-coins"></i> Harga Emas</button>
+            </li>
+            <li class="nav-item" data-tab="settings">
+                <button><i class="fa-solid fa-gear"></i> Pengaturan</button>
+            </li>
+        </ul>
+        
+        <div class="nav-footer">
+            &copy; 2026 Rumaisho Shop<br>v1.0.0
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main>
+        
+        <!-- Top Database Status Bar -->
+        <div class="connection-status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="db-status-dot"></div>
+                <span id="db-status-text">Mode Lokal (Offline)</span>
+            </div>
+            <button class="sync-button" id="sync-db-btn" style="display: none;">
+                <i class="fa-solid fa-rotate"></i> Sinkronisasi ke Supabase
+            </button>
+        </div>
+
+        <!-- ================= DASHBOARD PAGE ================= -->
+        <div id="page-dashboard" class="page active">
+            <div class="page-header">
+                <h1>Ringkasan Transaksi</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-sm" id="export-excel-recap-btn">
+                        <i class="fa-solid fa-file-excel"></i> Ekspor Excel Rekap
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Summary Metrics Cards -->
+            <div class="dashboard-summary-grid">
+                <div class="summary-card">
+                    <span class="summary-label">Total Pembelian</span>
+                    <span class="summary-value" id="dashboard-total-beli">Rp 0</span>
+                    <i class="fa-solid fa-cart-arrow-down summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Total Penjualan</span>
+                    <span class="summary-value" id="dashboard-total-jual">Rp 0</span>
+                    <i class="fa-solid fa-coins summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Total Keuntungan</span>
+                    <span class="summary-value positive" id="dashboard-total-untung">Rp 0</span>
+                    <i class="fa-solid fa-arrow-trend-up summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Stok Emas Aktif</span>
+                    <span class="summary-value" id="dashboard-active-stock">0 Item</span>
+                    <i class="fa-solid fa-cubes summary-icon"></i>
+                </div>
+            </div>
+
+            <!-- Dashboard Analytics & Detailed Recap -->
+            <div class="dashboard-details-grid">
+                <!-- Recap Table & Charts -->
+                <div class="glass-card">
+                    <h2><i class="fa-solid fa-table-list"></i> Tabel Rekapitulasi</h2>
+                    
+                    <div class="recap-tab-container">
+                        <button class="recap-tab-btn active" data-recap="month">Per Bulan</button>
+                        <button class="recap-tab-btn" data-recap="year">Per Tahun</button>
+                        <button class="recap-tab-btn" data-recap="item">Per Item</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="recap-table">
+                            <thead>
+                                <!-- Dynamic Headers -->
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic Data Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Graphic/Chart Card -->
+                <div class="glass-card">
+                    <h2><i class="fa-solid fa-chart-line"></i> Grafik Kinerja</h2>
+                    <div style="position: relative; height: 320px; width: 100%;">
+                        <canvas id="recap-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PEMBELIAN PAGE ================= -->
+        <div id="page-pembelian" class="page">
+            <div class="page-header">
+                <h1>Riwayat Pembelian Emas</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="open-add-beli-modal">
+                        <i class="fa-solid fa-plus"></i> Tambah Pembelian
+                    </button>
+                    <button class="btn btn-secondary" id="export-excel-beli">
+                        <i class="fa-solid fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-secondary" id="export-pdf-beli">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-secondary" id="btn-import-beli-trigger">
+                        <i class="fa-solid fa-file-import"></i> Impor Excel
+                    </button>
+                    <input type="file" id="import-excel-beli" accept=".xlsx, .xls" style="display: none;">
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="table-container">
+                    <table id="pembelian-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No Seri</th>
+                                <th>Harga Beli</th>
+                                <th>Nama Penjual</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PENJUALAN PAGE ================= -->
+        <div id="page-penjualan" class="page">
+            <div class="page-header">
+                <h1>Riwayat Penjualan Emas</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="open-add-jual-modal">
+                        <i class="fa-solid fa-plus"></i> Tambah Penjualan
+                    </button>
+                    <button class="btn btn-secondary" id="export-excel-jual">
+                        <i class="fa-solid fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-secondary" id="export-pdf-jual">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-secondary" id="btn-import-jual-trigger">
+                        <i class="fa-solid fa-file-import"></i> Impor Excel
+                    </button>
+                    <input type="file" id="import-excel-jual" accept=".xlsx, .xls" style="display: none;">
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="table-container">
+                    <table id="penjualan-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Gramasi (g)</th>
+                                <th>No Seri</th>
+                                <th>Nama Pembeli</th>
+                                <th>Harga Jual</th>
+                                <th>Harga Restok</th>
+                                <th>Keuntungan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= HARGA EMAS PAGE ================= -->
+        <div id="page-harga-emas" class="page">
+            <div class="page-header">
+                <h1>Papan Harga Emas</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="open-add-harga-modal">
+                        <i class="fa-solid fa-plus"></i> Tambah Harga
+                    </button>
+                </div>
+            </div>
+
+            <div class="gold-prices-layout">
+                <!-- Wrapper for Snapshot (Logo + prices board) -->
+                <div class="gold-prices-snapshot-wrapper" id="gold-prices-snapshot-area">
+                    
+                    <div class="gold-prices-banner-container">
+                        <img src="logo.jpg" alt="Rumaisho Shop Banner" class="gold-prices-banner">
+                    </div>
+                    
+                    <div class="gold-prices-control-bar" data-html2canvas-ignore="true">
+                        <div class="filter-group">
+                            <label for="filter-harga-tanggal">Filter Tanggal:</label>
+                            <input type="date" id="filter-harga-tanggal">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="btn-snapshot-wa">
+                            <i class="fa-solid fa-camera"></i> Snapshot Status WA
+                        </button>
+                    </div>
+
+                    <div class="gold-price-content-area">
+                        <div class="table-container">
+                            <table id="harga-emas-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ukuran Gram</th>
+                                        <th>Harga (Rp)</th>
+                                        <th>Jenis Logam</th>
+                                        <th data-html2canvas-ignore="true">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="snapshot-watermark">Diproduksi oleh Rumaisho Shop</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SETTINGS PAGE ================= -->
+        <div id="page-settings" class="page">
+            <div class="page-header">
+                <h1>Pengaturan Aplikasi</h1>
+            </div>
+
+            <div class="glass-card settings-section">
+                <h3><i class="fa-solid fa-key"></i> Ubah PIN Otorisasi</h3>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>PIN Lama</label>
+                    <input type="password" id="settings-old-pin" class="form-input" placeholder="Masukkan PIN Lama" maxlength="4">
+                </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>PIN Baru (4 Digit)</label>
+                    <input type="password" id="settings-new-pin" class="form-input" placeholder="Masukkan PIN Baru" maxlength="4">
+                </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>Konfirmasi PIN Baru</label>
+                    <input type="password" id="settings-confirm-pin" class="form-input" placeholder="Konfirmasi PIN Baru" maxlength="4">
+                </div>
+                <button class="btn btn-primary" id="save-pin-btn">Ubah PIN</button>
+            </div>
+
+            <div class="glass-card settings-section">
+                <h3><i class="fa-solid fa-cloud-arrow-up"></i> Konfigurasi Database Supabase</h3>
+                <div class="form-group">
+                    <label>Supabase URL</label>
+                    <input type="text" id="settings-db-url" class="form-input" placeholder="https://xxxxxxxx.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label>Supabase Anon Key</label>
+                    <input type="password" id="settings-db-key" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" id="test-db-connection">Tes Koneksi</button>
+                    <button class="btn btn-primary" id="save-db-btn">Simpan & Hubungkan</button>
+                </div>
+            </div>
+
+            <div class="glass-card settings-section">
+                <h3><i class="fa-solid fa-database"></i> Script Inisialisasi Database (SQL DDL)</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Salin script berikut dan jalankan di SQL Editor Supabase Anda untuk membuat tabel-tabel yang diperlukan:
+                </p>
+                <pre class="code-block" id="ddl-script-box">
+CREATE TABLE pembelian (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal DATE NOT NULL,
+    no_seri TEXT NOT NULL UNIQUE,
+    harga_beli NUMERIC NOT NULL,
+    nama_penjual TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE penjualan (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal DATE NOT NULL,
+    gramasi NUMERIC NOT NULL,
+    no_seri TEXT NOT NULL,
+    nama_pembeli TEXT NOT NULL,
+    harga_jual NUMERIC NOT NULL,
+    harga_restok NUMERIC NOT NULL,
+    keuntungan NUMERIC NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE harga_emas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal DATE NOT NULL,
+    gram NUMERIC NOT NULL,
+    harga NUMERIC NOT NULL,
+    jenis_logam TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NOTHING;
+                </pre>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- ==================== DIALOG MODALS ==================== -->
+    <!-- ======================================================== -->
+
+    <!-- MODAL: ADD PEMBELIAN -->
+    <div id="modal-add-beli" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Pembelian Emas</h3>
+                <button class="close-modal-btn" data-modal="modal-add-beli">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-beli">
+                    <div class="form-group">
+                        <label for="beli-tanggal">Tanggal</label>
+                        <input type="date" id="beli-tanggal" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="beli-no-seri">No Seri</label>
+                        <input type="text" id="beli-no-seri" class="form-input" placeholder="Contoh: ANTAM-99120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="beli-harga">Harga Beli (Rp)</label>
+                        <input type="number" id="beli-harga" class="form-input" placeholder="Masukkan harga beli" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="beli-penjual">Nama Penjual</label>
+                        <input type="text" id="beli-penjual" class="form-input" placeholder="Nama asal pembelian" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-add-beli">Batal</button>
+                <button class="btn btn-primary" id="btn-submit-beli">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD PENJUALAN -->
+    <div id="modal-add-jual" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Penjualan Emas</h3>
+                <button class="close-modal-btn" data-modal="modal-add-jual">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-jual">
+                    <div class="form-group">
+                        <label for="jual-tanggal">Tanggal</label>
+                        <input type="date" id="jual-tanggal" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jual-gramasi">Gramasi (Gram)</label>
+                        <input type="number" step="0.001" id="jual-gramasi" class="form-input" placeholder="Contoh: 1.0 atau 0.5" required min="0">
+                    </div>
+                    
+                    <!-- Serial dropdown with searchable/custom option -->
+                    <div class="form-group">
+                        <label>No Seri</label>
+                        <div class="custom-dropdown-container">
+                            <input type="text" id="jual-no-seri-select-input" class="form-input" placeholder="-- Pilih No Seri --" readonly required>
+                            <input type="hidden" id="jual-no-seri-value">
+                            <div class="dropdown-menu-list" id="jual-no-seri-dropdown-list">
+                                <div class="dropdown-search">
+                                    <input type="text" id="jual-no-seri-search" placeholder="Cari No Seri...">
+                                </div>
+                                <ul class="dropdown-options" id="jual-no-seri-options">
+                                    <!-- Dynamic Options from Pembelian -->
+                                </ul>
+                                <div class="dropdown-option-add" id="dropdown-add-custom-trigger">
+                                    <i class="fa-solid fa-plus-circle"></i> Input No Seri Manual...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mini manual serial input box -->
+                        <div class="manual-serial-box" id="manual-serial-input-box" style="display: none;">
+                            <input type="text" id="jual-no-seri-manual" class="form-input" placeholder="Ketik No Seri Manual">
+                            <button class="btn btn-secondary btn-sm" type="button" id="btn-cancel-manual-serial">Pilih Dropdown</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jual-pembeli">Nama Pembeli</label>
+                        <input type="text" id="jual-pembeli" class="form-input" placeholder="Masukkan nama pembeli" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jual-harga-jual">Harga Jual (Rp)</label>
+                        <input type="number" id="jual-harga-jual" class="form-input" placeholder="Masukkan harga jual" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="jual-harga-restok">Harga Restok (Rp)</label>
+                        <input type="number" id="jual-harga-restok" class="form-input" placeholder="Masukkan harga restok" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Keuntungan (Otomatis)</label>
+                        <input type="text" id="jual-keuntungan" class="form-input" readonly value="Rp 0" style="background-color: rgba(255,255,255,0.05); font-weight:700; color:var(--success);">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-add-jual">Batal</button>
+                <button class="btn btn-primary" id="btn-submit-jual">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD HARGA EMAS -->
+    <div id="modal-add-harga" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Harga Emas</h3>
+                <button class="close-modal-btn" data-modal="modal-add-harga">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-harga">
+                    <div class="form-group">
+                        <label for="harga-tanggal">Tanggal</label>
+                        <input type="date" id="harga-tanggal" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="harga-gram">Ukuran Gram</label>
+                        <input type="number" step="0.01" id="harga-gram" class="form-input" placeholder="Contoh: 1" required min="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="harga-nilai">Harga (Rp)</label>
+                        <input type="number" id="harga-nilai" class="form-input" placeholder="Masukkan nominal harga" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="harga-jenis">Jenis Logam Mulia</label>
+                        <select id="harga-jenis" class="form-select" required>
+                            <option value="Antam">Antam</option>
+                            <option value="UBS">UBS</option>
+                            <option value="Galeri24">Galeri24</option>
+                            <option value="Perak Nadir">Perak Nadir</option>
+                            <option value="Lainnya">Lainnya...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="harga-jenis-custom-box" style="display: none; margin-top: 0.5rem;">
+                        <label for="harga-jenis-custom">Nama Logam Mulia Kustom</label>
+                        <input type="text" id="harga-jenis-custom" class="form-input" placeholder="Masukkan nama logam mulia">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-add-harga">Batal</button>
+                <button class="btn btn-primary" id="btn-submit-harga">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: FORM SUBMISSION CONFIRMATION -->
+    <div id="modal-confirm-submit" class="modal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Konfirmasi Data</h3>
+                <button class="close-modal-btn" data-modal="modal-confirm-submit">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-muted);">
+                    Apakah Anda yakin ingin memasukkan data berikut?
+                </p>
+                <div id="confirm-submit-data-list" style="background-color: rgba(0,0,0,0.2); padding:1rem; border-radius:8px; border:1px solid var(--border-color); font-size:0.95rem; line-height:1.6;">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-confirm-submit">Batal</button>
+                <button class="btn btn-primary" id="btn-confirm-submit-go">Ya, Submit Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PIN AUTHORIZATION -->
+    <div id="modal-pin-auth" class="modal">
+        <div class="modal-content" style="max-width: 360px;">
+            <div class="modal-header">
+                <h3>Verifikasi Otorisasi PIN</h3>
+                <button class="close-modal-btn" data-modal="modal-pin-auth">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Silakan masukkan kode PIN 4 digit untuk mengonfirmasi tindakan ini.
+                </p>
+                <div class="pin-input-container">
+                    <input type="password" class="pin-digit-box" maxlength="1" pattern="[0-9]*" inputmode="numeric">
+                    <input type="password" class="pin-digit-box" maxlength="1" pattern="[0-9]*" inputmode="numeric">
+                    <input type="password" class="pin-digit-box" maxlength="1" pattern="[0-9]*" inputmode="numeric">
+                    <input type="password" class="pin-digit-box" maxlength="1" pattern="[0-9]*" inputmode="numeric">
+                </div>
+                <div id="pin-auth-error" style="color: var(--danger); font-size: 0.85rem; font-weight: 600; min-height: 1.25rem;"></div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-secondary" data-modal="modal-pin-auth">Batal</button>
+                <button class="btn btn-primary" id="btn-pin-auth-verify">Verifikasi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Core Script Module Link -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>

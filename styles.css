@@ -1,0 +1,880 @@
+/* Modern & Premium Styling for Rumaisho Gold App */
+
+:root {
+    --bg-dark: linear-gradient(135deg, #052b2c 0%, #0d9488 60%, #0db3a5 100%);
+    --bg-card: rgba(4, 22, 23, 0.65);
+    --bg-card-hover: rgba(4, 22, 23, 0.85);
+    --gold: #d4af37;
+    --gold-glow: rgba(212, 175, 55, 0.25);
+    --gold-light: #f3e5ab;
+    --gold-gradient: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+    --text-white: #f0fdfa;
+    --text-muted: #8fa3a6;
+    --border-color: rgba(13, 179, 165, 0.2);
+    --border-focus: rgba(13, 179, 165, 0.6);
+    --danger: #ef4444;
+    --danger-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    --success: #10b981;
+    --success-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    --sidebar-width: 260px;
+    --transition-speed: 0.3s;
+    --font-main: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --tosca: #0db3a5;
+    --tosca-glow: rgba(13, 179, 165, 0.25);
+    --tosca-gradient: linear-gradient(135deg, #0db3a5 0%, #0d9488 100%);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-dark);
+    background-attachment: fixed;
+    color: var(--text-white);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+}
+
+/* Background Gradients & Glows */
+.bg-glow {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, var(--tosca-glow) 0%, rgba(0,0,0,0) 70%);
+    z-index: -1;
+    pointer-events: none;
+}
+#glow-top-left { top: -100px; left: -100px; }
+#glow-bottom-right { bottom: -100px; right: -100px; }
+
+/* Sidebar Navigation */
+aside {
+    width: var(--sidebar-width);
+    background-color: rgba(6, 20, 24, 0.9);
+    border-right: 1px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.app-logo {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+.logo-text {
+    margin-top: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+}
+
+.nav-item button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font-main);
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: left;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all var(--transition-speed);
+}
+
+.nav-item button:hover {
+    color: var(--text-white);
+    background-color: rgba(13, 179, 165, 0.08);
+}
+
+.nav-item.active button {
+    color: var(--tosca);
+    background-color: rgba(13, 179, 165, 0.12);
+    border-color: rgba(13, 179, 165, 0.3);
+    box-shadow: 0 0 15px var(--tosca-glow);
+}
+
+.nav-item i {
+    font-size: 1.15rem;
+}
+
+.nav-footer {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Main Content Area */
+main {
+    margin-left: var(--sidebar-width);
+    flex-grow: 1;
+    padding: 2rem 3rem;
+    min-height: 100vh;
+    position: relative;
+    max-width: calc(100vw - var(--sidebar-width));
+}
+
+/* Top Connection Bar */
+.connection-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(13, 33, 38, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(5px);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--danger);
+    box-shadow: 0 0 8px var(--danger);
+}
+
+.status-dot.online {
+    background-color: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.sync-button {
+    background: var(--gold-gradient);
+    border: none;
+    color: var(--bg-dark);
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sync-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px var(--gold-glow);
+}
+
+/* Page Headers */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Page Containers */
+.page {
+    display: none;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Glassmorphic Cards & Grid Layouts */
+.dashboard-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-speed);
+    backdrop-filter: blur(10px);
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--gold-gradient);
+}
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-focus);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--gold-glow);
+    background: var(--bg-card-hover);
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.summary-value.positive {
+    color: var(--success);
+}
+
+.summary-icon {
+    position: absolute;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    font-size: 2rem;
+    color: rgba(212, 175, 55, 0.15);
+    pointer-events: none;
+}
+
+.dashboard-details-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gold-light);
+}
+
+/* Modals & Popups styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(4, 14, 17, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-speed);
+}
+
+.modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: #091a1d;
+    border: 1px solid var(--border-focus);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--tosca-glow);
+    transform: scale(0.9);
+    transition: transform var(--transition-speed);
+    position: relative;
+}
+
+.modal.active .modal-content {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 0.75rem;
+}
+
+.modal-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gold-light);
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+    color: var(--text-white);
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Forms and Inputs */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: rgba(6, 20, 24, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-white);
+    font-family: var(--font-main);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-input:focus, .form-select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Buttons */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-family: var(--font-main);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--gold-gradient);
+    color: var(--bg-dark);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 5px 15px var(--gold-glow);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border-color: var(--border-color);
+    color: var(--text-white);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.btn-danger {
+    background: var(--danger-gradient);
+    color: var(--text-white);
+}
+
+.btn-danger:hover {
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+/* Tables styling */
+.table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+th {
+    background-color: rgba(6, 20, 24, 0.8);
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--gold-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(13, 33, 38, 0.2);
+}
+
+tr:hover td {
+    background-color: rgba(13, 33, 38, 0.5);
+}
+
+.action-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Custom Dropdown for Serial Number */
+.custom-dropdown-container {
+    position: relative;
+}
+
+.dropdown-menu-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #091a1d;
+    border: 1px solid var(--border-focus);
+    border-radius: 8px;
+    z-index: 500;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+.dropdown-menu-list.active {
+    display: block;
+}
+
+.dropdown-search {
+    position: sticky;
+    top: 0;
+    background-color: #091a1d;
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dropdown-search input {
+    flex-grow: 1;
+    padding: 0.4rem 0.75rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-white);
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.dropdown-search input:focus {
+    border-color: var(--tosca);
+}
+
+.dropdown-options {
+    list-style: none;
+}
+
+.dropdown-option-item {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdown-option-item:hover {
+    background-color: rgba(212, 175, 55, 0.15);
+    color: var(--gold-light);
+}
+
+.dropdown-option-add {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    background-color: rgba(13, 179, 165, 0.05);
+    color: var(--tosca);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown-option-add:hover {
+    background-color: rgba(13, 179, 165, 0.15);
+}
+
+/* Manual serial input sub-form */
+.manual-serial-box {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    animation: slideDown 0.2s ease-in-out;
+}
+
+/* Gold Price Header & Snapshot area */
+.gold-prices-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.gold-prices-banner-container {
+    width: 100%;
+    text-align: center;
+    background-color: #052b2c;
+    padding: 1.5rem;
+    border-radius: 16px 16px 0 0;
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+}
+
+.gold-prices-banner {
+    max-width: 450px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.gold-prices-snapshot-wrapper {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background-color: #052b2c;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.snapshot-watermark {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    font-size: 0.75rem;
+    color: rgba(212, 175, 55, 0.3);
+    font-weight: 700;
+}
+
+/* We style elements differently during snapshots using this wrapper class */
+.html2canvas-container .snapshot-watermark {
+    display: block;
+}
+
+.gold-prices-control-bar {
+    background-color: rgba(13, 33, 38, 0.6);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.filter-group input {
+    background-color: rgba(6, 20, 24, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    color: var(--text-white);
+    outline: none;
+    font-family: var(--font-main);
+}
+
+.gold-price-content-area {
+    padding: 2rem;
+}
+
+/* Tabs & Filters for Recap */
+.recap-filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.recap-tab-container {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.recap-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.recap-tab-btn:hover {
+    color: var(--text-white);
+}
+
+.recap-tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+}
+
+/* PIN validation UI */
+.pin-input-container {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.pin-digit-box {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(6, 20, 24, 0.8);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--gold);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pin-digit-box:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Settings styling */
+.settings-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-section h3 {
+    font-size: 1.1rem;
+    color: var(--gold-light);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.code-block {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .dashboard-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    aside {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .app-logo {
+        max-width: 80px;
+    }
+
+    .logo-text {
+        margin-top: 0;
+        font-size: 1.1rem;
+    }
+
+    .nav-links {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        width: 100%;
+    }
+
+    .nav-item button {
+        white-space: nowrap;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    .nav-footer {
+        display: none;
+    }
+
+    main {
+        margin-left: 0;
+        padding: 1.5rem 1rem;
+        max-width: 100%;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .gold-prices-control-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
