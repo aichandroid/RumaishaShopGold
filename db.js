@@ -69,11 +69,36 @@ export class GoldDatabase {
         this.supabaseClient = null; // reset client
     }
 
+    // Helper to check if a key is a service_role key (secret key)
+    isServiceRoleKey(key) {
+        if (!key) return false;
+        try {
+            const parts = key.split('.');
+            if (parts.length === 3) {
+                const base64Url = parts[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                return payload.role === 'service_role';
+            }
+        } catch (e) {
+            if (key.includes("service_role") || key.includes("secret")) return true;
+        }
+        return false;
+    }
+
     // Initialize Supabase Client
     getSupabase() {
         if (this.supabaseClient) return this.supabaseClient;
 
         const { url, key } = this.getCredentials();
+        if (this.isServiceRoleKey(key)) {
+            console.error("Initialization rejected: service_role key cannot be used in browser.");
+            return null; // Force fallback to Local Storage
+        }
+
         if (url && key && window.supabase) {
             try {
                 this.supabaseClient = window.supabase.createClient(url, key);
@@ -94,6 +119,9 @@ export class GoldDatabase {
     // Test connection with input credentials
     async testConnection(url, key) {
         if (!window.supabase) return { success: false, message: "Supabase library not loaded yet." };
+        if (this.isServiceRoleKey(key)) {
+            return { success: false, message: "Koneksi Ditolak: Anda memasukkan 'service_role' (Secret Key) yang sangat rahasia. Supabase melarang penggunaan key ini di browser demi keamanan. Silakan gunakan Anon Key (Public Key) yang aman." };
+        }
         try {
             const client = window.supabase.createClient(url, key);
             // Try querying settings or a simple select

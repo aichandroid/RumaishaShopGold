@@ -104,12 +104,22 @@ function updateDatabaseStatusUI() {
     const label = document.getElementById("db-status-text");
     const syncBtn = document.getElementById("sync-db-btn");
 
-    if (db.isUsingSupabase()) {
+    const { key } = db.getCredentials();
+    const isServiceRole = db.isServiceRoleKey(key);
+
+    if (isServiceRole) {
+        dot.className = "status-dot";
+        dot.style.backgroundColor = "var(--danger)";
+        label.textContent = "Error: Harap Ganti ke Anon Key (Bukan Service Role Key)";
+        syncBtn.style.display = "none";
+    } else if (db.isUsingSupabase()) {
         dot.className = "status-dot online";
+        dot.style.backgroundColor = "";
         label.textContent = "Terhubung ke Supabase";
         syncBtn.style.display = "none";
     } else {
         dot.className = "status-dot";
+        dot.style.backgroundColor = "";
         label.textContent = "Mode Lokal (Offline)";
         syncBtn.style.display = "inline-flex";
     }
