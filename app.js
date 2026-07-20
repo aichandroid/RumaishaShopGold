@@ -1409,6 +1409,24 @@ function processImportData(data, type, fileInput) {
     let validRecords = [];
     let errorMsg = "";
 
+    // Helper functions for robust numeric parsing
+    const cleanPrice = (val) => {
+        if (val === undefined || val === null || val === "") return 0;
+        if (typeof val === 'number') return val;
+        let clean = String(val).replace(/Rp/gi, '').replace(/\s/g, '');
+        clean = clean.replace(/[,.]00$/, ''); // strip decimal zeros
+        clean = clean.replace(/[^0-9-]/g, ''); // strip thousand separators
+        return parseFloat(clean) || 0;
+    };
+
+    const cleanGram = (val) => {
+        if (val === undefined || val === null || val === "") return 0;
+        if (typeof val === 'number') return val;
+        let clean = String(val).replace(/\s/g, '').replace(',', '.');
+        clean = clean.replace(/[^0-9.]/g, '');
+        return parseFloat(clean) || 0;
+    };
+
     if (type === "pembelian") {
         // Expected columns: Tanggal, No Seri, Harga Beli (IDR), Nama Penjual
         data.forEach((row, i) => {
@@ -1417,12 +1435,19 @@ function processImportData(data, type, fileInput) {
             const hargaVal = row["Harga Beli (IDR)"] || row["Harga Beli"];
             const penjualVal = row["Nama Penjual"] || row["Penjual"];
 
+            // Skip empty rows (blank rows or header formatting residue)
+            const dateStrRaw = dateVal ? String(dateVal).trim() : "";
+            const serialStrRaw = serialVal ? String(serialVal).trim() : "";
+            if (!dateStrRaw && !serialStrRaw) {
+                return; // Skip empty row silently
+            }
+
             if (!dateVal || !serialVal || hargaVal === undefined || !penjualVal) {
                 errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap.\n`;
                 return;
             }
 
-            let dateStr = String(dateVal).trim();
+            let dateStr = dateStrRaw;
             if (!isNaN(dateVal) && Number(dateVal) > 40000) {
                 dateStr = ExcelDateToJSDate(Number(dateVal));
             }
@@ -1430,7 +1455,7 @@ function processImportData(data, type, fileInput) {
             validRecords.push({
                 tanggal: dateStr,
                 no_seri: String(serialVal).trim().toUpperCase(),
-                harga_beli: parseFloat(hargaVal),
+                harga_beli: cleanPrice(hargaVal),
                 nama_penjual: String(penjualVal).trim()
             });
         });
@@ -1446,23 +1471,30 @@ function processImportData(data, type, fileInput) {
             const restokVal = row["Harga Restok (IDR)"] || row["Harga Restok"];
             const untungVal = row["Keuntungan (IDR)"] || row["Keuntungan"];
 
+            // Skip empty rows
+            const dateStrRaw = dateVal ? String(dateVal).trim() : "";
+            const serialStrRaw = serialVal ? String(serialVal).trim() : "";
+            if (!dateStrRaw && !serialStrRaw) {
+                return; // Skip empty row silently
+            }
+
             if (!dateVal || gramVal === undefined || !serialVal || !pembeliVal || jualVal === undefined || restokVal === undefined) {
                 errorMsg += `Baris ${i + 2}: Kolom wajib tidak lengkap.\n`;
                 return;
             }
 
-            let dateStr = String(dateVal).trim();
+            let dateStr = dateStrRaw;
             if (!isNaN(dateVal) && Number(dateVal) > 40000) {
                 dateStr = ExcelDateToJSDate(Number(dateVal));
             }
 
-            const hargaJual = parseFloat(jualVal);
-            const hargaRestok = parseFloat(restokVal);
-            const keuntungan = untungVal !== undefined ? parseFloat(untungVal) : (hargaJual - hargaRestok);
+            const hargaJual = cleanPrice(jualVal);
+            const hargaRestok = cleanPrice(restokVal);
+            const keuntungan = untungVal !== undefined ? cleanPrice(untungVal) : (hargaJual - hargaRestok);
 
             validRecords.push({
                 tanggal: dateStr,
-                gramasi: parseFloat(gramVal),
+                gramasi: cleanGram(gramVal),
                 no_seri: String(serialVal).trim().toUpperCase(),
                 nama_pembeli: String(pembeliVal).trim(),
                 harga_jual: hargaJual,
