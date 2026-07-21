@@ -153,7 +153,7 @@ export class GoldDatabase {
                 }
                 return { success: false, message: error.message };
             }
-            return { success: true, message: "Koneksi berhasil terhubung dengan Supabase!" };
+            return { success: true, message: "Koneksi berhasil terhubung!" };
         } catch (e) {
             return { success: false, message: e.message };
         }

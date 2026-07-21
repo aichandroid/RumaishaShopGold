@@ -177,21 +177,22 @@ function updateDatabaseStatusUI() {
     const dot = document.getElementById("db-status-dot");
     const label = document.getElementById("db-status-text");
     const syncBtn = document.getElementById("sync-db-btn");
+    const statusBar = document.querySelector(".connection-status-bar");
 
     const { key } = db.getCredentials();
     const isServiceRole = db.isServiceRoleKey(key);
 
     if (isServiceRole) {
+        if (statusBar) statusBar.style.display = "flex";
         dot.className = "status-dot";
         dot.style.backgroundColor = "var(--danger)";
         label.textContent = "Error: Harap Ganti ke Anon Key (Bukan Service Role Key)";
         syncBtn.style.display = "none";
     } else if (db.isUsingSupabase()) {
-        dot.className = "status-dot online";
-        dot.style.backgroundColor = "";
-        label.textContent = "Terhubung ke Supabase";
-        syncBtn.style.display = "none";
+        // Hide the connection status bar entirely when successfully connected
+        if (statusBar) statusBar.style.display = "none";
     } else {
+        if (statusBar) statusBar.style.display = "flex";
         dot.className = "status-dot";
         dot.style.backgroundColor = "";
         label.textContent = "Mode Lokal (Offline)";
