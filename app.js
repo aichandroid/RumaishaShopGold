@@ -732,15 +732,9 @@ async function renderHargaEmasTable() {
     const filterDate = document.getElementById("filter-harga-tanggal").value;
     const list = await db.getHargaEmas(filterDate || null);
 
-    // Apply Custom Green Theme Color
+    // Apply Custom Green Theme Color with contrast logic
     const activeColor = await db.getHargaEmasThemeColor();
-    const pageEl = document.getElementById("page-harga-emas");
-    if (pageEl) {
-        pageEl.style.setProperty("--harga-emas-theme", activeColor);
-        const rgb = hexToRgb(activeColor);
-        pageEl.style.setProperty("--harga-emas-border", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
-        pageEl.style.setProperty("--harga-emas-bg", `rgba(${Math.floor(rgb.r * 0.08)}, ${Math.floor(rgb.g * 0.08)}, ${Math.floor(rgb.b * 0.08)}, 0.98)`);
-    }
+    applyGoldPriceTheme(activeColor);
 
     // Update Date Badge with Day Name and Indo format
     const badge = document.getElementById("gold-prices-date-badge");
@@ -1750,6 +1744,45 @@ function setupPriceTemplateEventListener() {
     });
 }
 
+// Theme Color adaptation based on background luminance
+function applyGoldPriceTheme(hex) {
+    const pageEl = document.getElementById("page-harga-emas");
+    if (!pageEl) return;
+
+    pageEl.style.setProperty("--harga-emas-theme", hex);
+    
+    // Compute brightness
+    const rgb = hexToRgb(hex);
+    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+    const isLight = brightness >= 140; // threshold for light colors
+
+    if (isLight) {
+        // Light background styles
+        pageEl.style.setProperty("--harga-emas-bg", hex);
+        pageEl.style.setProperty("--harga-emas-text", "#0c1d1a"); // dark text
+        pageEl.style.setProperty("--harga-emas-border", "rgba(12, 29, 26, 0.15)");
+        pageEl.style.setProperty("--harga-emas-accent", "#755600"); // dark gold/accent
+        pageEl.style.setProperty("--harga-emas-badge-bg", "rgba(0, 0, 0, 0.05)");
+        pageEl.style.setProperty("--harga-emas-header-bg", "rgba(12, 29, 26, 0.85)"); // dark table headers
+        pageEl.style.setProperty("--harga-emas-header-text", "#ffffff");
+        pageEl.style.setProperty("--harga-emas-td-bg", "rgba(255, 255, 255, 0.25)");
+        pageEl.style.setProperty("--harga-emas-shadow", "none");
+        pageEl.style.setProperty("--harga-emas-watermark", "rgba(12, 29, 26, 0.35)");
+    } else {
+        // Dark background styles
+        pageEl.style.setProperty("--harga-emas-bg", hex);
+        pageEl.style.setProperty("--harga-emas-text", "#f0fbf9"); // light text
+        pageEl.style.setProperty("--harga-emas-border", "rgba(240, 251, 249, 0.15)");
+        pageEl.style.setProperty("--harga-emas-accent", "#d4af37"); // gold
+        pageEl.style.setProperty("--harga-emas-badge-bg", "rgba(255, 255, 255, 0.05)");
+        pageEl.style.setProperty("--harga-emas-header-bg", "rgba(0, 0, 0, 0.45)"); // translucent black
+        pageEl.style.setProperty("--harga-emas-header-text", "#d4af37");
+        pageEl.style.setProperty("--harga-emas-td-bg", "rgba(0, 0, 0, 0.15)");
+        pageEl.style.setProperty("--harga-emas-shadow", "0 0 10px rgba(212, 175, 55, 0.3)");
+        pageEl.style.setProperty("--harga-emas-watermark", "rgba(212, 175, 55, 0.3)");
+    }
+}
+
 // Custom Green Theme Picker Setup
 async function setupThemeColorPicker() {
     const grid = document.getElementById("theme-color-picker-grid");
@@ -1774,15 +1807,7 @@ async function setupThemeColorPicker() {
             item.classList.add("active");
             
             await db.updateHargaEmasThemeColor(t.hex);
-            
-            // Re-apply styles
-            const pageEl = document.getElementById("page-harga-emas");
-            if (pageEl) {
-                pageEl.style.setProperty("--harga-emas-theme", t.hex);
-                const rgb = hexToRgb(t.hex);
-                pageEl.style.setProperty("--harga-emas-border", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
-                pageEl.style.setProperty("--harga-emas-bg", `rgba(${Math.floor(rgb.r * 0.08)}, ${Math.floor(rgb.g * 0.08)}, ${Math.floor(rgb.b * 0.08)}, 0.98)`);
-            }
+            applyGoldPriceTheme(t.hex);
         });
 
         grid.appendChild(item);

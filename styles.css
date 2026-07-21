@@ -885,38 +885,72 @@ tr:hover td {
 
 #page-harga-emas {
     --harga-emas-theme: #0db3a5; /* Default tosca */
-    --harga-emas-bg: rgba(5, 43, 44, 0.95);
+    --harga-emas-bg: #052b2c;
     --harga-emas-border: rgba(13, 179, 165, 0.2);
+    --harga-emas-text: #f0fcf9;
+    --harga-emas-accent: #d4af37;
+    --harga-emas-badge-bg: rgba(255, 255, 255, 0.05);
+    --harga-emas-header-bg: rgba(0, 0, 0, 0.4);
+    --harga-emas-header-text: #d4af37;
+    --harga-emas-td-bg: rgba(0, 0, 0, 0.15);
+    --harga-emas-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    --harga-emas-watermark: rgba(212, 175, 55, 0.3);
 }
 
 .gold-prices-banner-container {
-    background-color: var(--harga-emas-bg);
-    border-color: var(--harga-emas-border);
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    border-bottom: 1px solid var(--harga-emas-border) !important;
+    transition: all 0.3s ease;
 }
 
 .gold-prices-snapshot-wrapper {
-    background-color: var(--harga-emas-bg);
-    border-color: var(--harga-emas-border);
+    background-color: var(--harga-emas-bg) !important;
+    border: 2px solid var(--harga-emas-border) !important;
+    color: var(--harga-emas-text) !important;
+    transition: all 0.3s ease;
 }
 
 .gold-prices-date-badge {
     text-align: center;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--gold);
+    color: var(--harga-emas-accent) !important;
     padding: 0.6rem 1.2rem;
-    margin: 1rem 2rem 0 2rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--harga-emas-border);
+    margin: 1.2rem 2rem 0 2rem;
+    background: var(--harga-emas-badge-bg) !important;
+    border: 1px solid var(--harga-emas-border) !important;
     border-radius: 8px;
     backdrop-filter: blur(10px);
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-    border-color: var(--harga-emas-theme);
+    text-shadow: var(--harga-emas-shadow) !important;
+    transition: all 0.3s ease;
 }
 
 #harga-emas-table th {
-    background-color: rgba(6, 20, 24, 0.9);
-    border-bottom: 2px solid var(--harga-emas-theme);
+    background-color: var(--harga-emas-header-bg) !important;
+    color: var(--harga-emas-header-text) !important;
+    border-bottom: 2px solid var(--harga-emas-theme) !important;
+    transition: all 0.3s ease;
+}
+
+#harga-emas-table td {
+    background-color: var(--harga-emas-td-bg) !important;
+    color: var(--harga-emas-text) !important;
+    border-bottom: 1px solid var(--harga-emas-border) !important;
+    transition: all 0.3s ease;
+}
+
+#harga-emas-table td strong {
+    color: var(--harga-emas-accent) !important;
+}
+
+#harga-emas-table .badge {
+    background-color: var(--harga-emas-badge-bg) !important;
+    color: var(--harga-emas-text) !important;
+    border: 1px solid var(--harga-emas-border) !important;
+}
+
+.snapshot-watermark {
+    color: var(--harga-emas-watermark) !important;
 }
 
 .color-picker-grid {
