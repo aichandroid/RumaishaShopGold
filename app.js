@@ -35,6 +35,75 @@ function formatDateIndo(dateStr) {
     });
 }
 
+// Helper for day name in Indonesian
+function getDayNameIndo(dateStr) {
+    if (!dateStr) return "";
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        return days[date.getDay()];
+    }
+    const date = new Date(dateStr);
+    const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return days[date.getDay()];
+}
+
+// Helper for full date format: "Hari, Tanggal Bulan Tahun"
+function formatFullDateIndo(dateStr) {
+    if (!dateStr) return "";
+    const dayName = getDayNameIndo(dateStr);
+    const dateFormatted = formatDateIndo(dateStr);
+    return `${dayName}, ${dateFormatted}`;
+}
+
+// Helper to convert hex to rgb
+function hexToRgb(hex) {
+    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 13, g: 179, b: 165 };
+}
+
+const GREEN_THEMES = [
+    { name: "Hijau Muda", label: "Light Green", hex: "#90ee90" },
+    { name: "Hijau Neon", label: "Neon Green", hex: "#39ff14" },
+    { name: "Hijau Lemon", label: "Lemon Green", hex: "#adff2f" },
+    { name: "Hijau Lime", label: "Lime Green", hex: "#00ff00" },
+    { name: "Hijau Chartreuse", label: "Chartreuse", hex: "#7fff00" },
+    { name: "Hijau Mint", label: "Mint Green", hex: "#98ff98" },
+    { name: "Hijau Sage", label: "Sage Green", hex: "#87a96b" },
+    { name: "Hijau Pistachio", label: "Pistachio Green", hex: "#93c572" },
+    { name: "Hijau Apel", label: "Apple Green", hex: "#8db600" },
+    { name: "Hijau Celadon", label: "Celadon", hex: "#ace1af" },
+    { name: "Hijau Seafoam", label: "Seafoam Green", hex: "#93e9be" },
+    { name: "Hijau Pastel", label: "Pastel Green", hex: "#77dd77" },
+    { name: "Hijau Zaitun / Olive", label: "Olive Green", hex: "#808000" },
+    { name: "Hijau Matcha", label: "Matcha Green", hex: "#8f9779" },
+    { name: "Hijau Lumut", label: "Moss Green", hex: "#8a9a5b" },
+    { name: "Hijau Rumput", label: "Grass Green", hex: "#567d46" },
+    { name: "Hijau Zamrud / Emerald", label: "Emerald Green", hex: "#50c878" },
+    { name: "Hijau Giok / Jade", label: "Jade Green", hex: "#00a86b" },
+    { name: "Hijau Kelly", label: "Kelly Green", hex: "#4cbb17" },
+    { name: "Hijau Forest / Hutan", label: "Forest Green", hex: "#228b22" },
+    { name: "Hijau Pinus", label: "Pine Green", hex: "#01796f" },
+    { name: "Hijau Botol", label: "Bottle Green", hex: "#006a4e" },
+    { name: "Hijau Tentara / Army", label: "Army Green", hex: "#4b5320" },
+    { name: "Hijau Khaki / Camo", label: "Camouflage Green", hex: "#78866b" },
+    { name: "Hijau Malakit", label: "Malachite", hex: "#0bda51" },
+    { name: "Hijau Viridian", label: "Viridian", hex: "#40826d" },
+    { name: "Hijau Sea / Laut", label: "Sea Green", hex: "#2e8b57" },
+    { name: "Hijau Teal", label: "Teal Green", hex: "#00827f" },
+    { name: "Hijau Muted", label: "Muted Green", hex: "#5c715e" },
+    { name: "Hijau Hunter", label: "Hunter Green", hex: "#355e3b" },
+    { name: "Hijau Brunswick", label: "Brunswick Green", hex: "#1b4d3e" },
+    { name: "Hijau Gelap", label: "Dark Green", hex: "#006400" }
+];
+
 // Generate file name with current date
 function getExportFilename(prefix, extension) {
     const today = new Date();
@@ -96,6 +165,8 @@ async function initApp() {
     setupSettingsEventListeners();
     setupExportEventListeners();
     setupImportEventListeners();
+    setupPriceTemplateEventListener();
+    await setupThemeColorPicker();
 
     // 5. Initial Data Load (Dashboard)
     await loadDashboardData();
@@ -660,6 +731,23 @@ async function renderHargaEmasTable() {
 
     const filterDate = document.getElementById("filter-harga-tanggal").value;
     const list = await db.getHargaEmas(filterDate || null);
+
+    // Apply Custom Green Theme Color
+    const activeColor = await db.getHargaEmasThemeColor();
+    const pageEl = document.getElementById("page-harga-emas");
+    if (pageEl) {
+        pageEl.style.setProperty("--harga-emas-theme", activeColor);
+        const rgb = hexToRgb(activeColor);
+        pageEl.style.setProperty("--harga-emas-border", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
+        pageEl.style.setProperty("--harga-emas-bg", `rgba(${Math.floor(rgb.r * 0.08)}, ${Math.floor(rgb.g * 0.08)}, ${Math.floor(rgb.b * 0.08)}, 0.98)`);
+    }
+
+    // Update Date Badge with Day Name and Indo format
+    const badge = document.getElementById("gold-prices-date-badge");
+    if (badge) {
+        const todayStr = new Date().toISOString().split("T")[0];
+        badge.textContent = `Update Harga Emas: ${formatFullDateIndo(filterDate || todayStr)}`;
+    }
 
     if (list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Tidak ada data harga emas untuk tanggal ini.</td></tr>`;
@@ -1595,5 +1683,109 @@ function ExcelDateToJSDate(serial) {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
+}
+
+// Setup Gold Price template copiers
+function setupPriceTemplateEventListener() {
+    const btn = document.getElementById("btn-copy-template-harga");
+    if (!btn) return;
+
+    btn.addEventListener("click", async () => {
+        const activeDate = document.getElementById("filter-harga-tanggal").value || new Date().toISOString().split("T")[0];
+        
+        // Get all prices
+        const allPrices = await db.getHargaEmas(null);
+        if (allPrices.length === 0) {
+            alert("Tidak ada data harga emas sebelumnya untuk dijadikan template!");
+            return;
+        }
+
+        // Find latest date that is not activeDate
+        const dates = [...new Set(allPrices.map(p => p.tanggal))].sort((a,b) => b.localeCompare(a));
+        const templateDate = dates.find(d => d !== activeDate) || dates[0];
+        
+        if (!templateDate) {
+            alert("Tidak ditemukan tanggal alternatif untuk dijadikan template!");
+            return;
+        }
+
+        const templateRecords = allPrices.filter(p => p.tanggal === templateDate);
+        if (templateRecords.length === 0) {
+            alert("Tidak ada data pada tanggal template!");
+            return;
+        }
+
+        const activeDateFormatted = formatDateIndo(activeDate);
+        const templateDateFormatted = formatDateIndo(templateDate);
+        
+        // Check if activeDate already has records
+        const activeDateRecords = allPrices.filter(p => p.tanggal === activeDate);
+        let confirmMsg = `Salin semua harga emas (${templateRecords.length} item) dari tanggal ${templateDateFormatted} ke tanggal ${activeDateFormatted}?`;
+        if (activeDateRecords.length > 0) {
+            confirmMsg = `Tanggal ${activeDateFormatted} sudah memiliki ${activeDateRecords.length} data harga emas. \n\nMenyalin template akan MENGHAPUS data yang ada pada tanggal tersebut dan menggantinya dengan data dari tanggal ${templateDateFormatted}.\n\nLanjutkan?`;
+        }
+
+        if (!confirm(confirmMsg)) return;
+
+        // Perform copy (no PIN required)
+        if (activeDateRecords.length > 0) {
+            for (const r of activeDateRecords) {
+                await db.deleteHargaEmas(r.id);
+            }
+        }
+
+        let successCount = 0;
+        for (const r of templateRecords) {
+            const res = await db.addHargaEmas({
+                tanggal: activeDate,
+                gram: r.gram,
+                harga: r.harga,
+                jenis_logam: r.jenis_logam
+            });
+            if (res.success) successCount++;
+        }
+
+        await renderHargaEmasTable();
+        alert(`Berhasil menyalin ${successCount} template harga emas ke tanggal ${activeDateFormatted}!`);
+    });
+}
+
+// Custom Green Theme Picker Setup
+async function setupThemeColorPicker() {
+    const grid = document.getElementById("theme-color-picker-grid");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+    const activeColor = await db.getHargaEmasThemeColor();
+
+    GREEN_THEMES.forEach(t => {
+        const item = document.createElement("div");
+        item.className = "color-picker-item" + (t.hex.toLowerCase() === activeColor.toLowerCase() ? " active" : "");
+        item.innerHTML = `
+            <div class="color-picker-circle" style="background-color: ${t.hex};"></div>
+            <div class="color-picker-text">
+                ${t.name}
+                <small>${t.label}</small>
+            </div>
+        `;
+
+        item.addEventListener("click", async () => {
+            document.querySelectorAll(".color-picker-item").forEach(el => el.classList.remove("active"));
+            item.classList.add("active");
+            
+            await db.updateHargaEmasThemeColor(t.hex);
+            
+            // Re-apply styles
+            const pageEl = document.getElementById("page-harga-emas");
+            if (pageEl) {
+                pageEl.style.setProperty("--harga-emas-theme", t.hex);
+                const rgb = hexToRgb(t.hex);
+                pageEl.style.setProperty("--harga-emas-border", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
+                pageEl.style.setProperty("--harga-emas-bg", `rgba(${Math.floor(rgb.r * 0.08)}, ${Math.floor(rgb.g * 0.08)}, ${Math.floor(rgb.b * 0.08)}, 0.98)`);
+            }
+        });
+
+        grid.appendChild(item);
+    });
 }
 

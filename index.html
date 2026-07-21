@@ -233,6 +233,9 @@
             <div class="page-header">
                 <h1>Papan Harga Emas</h1>
                 <div class="header-actions">
+                    <button class="btn btn-secondary" id="btn-copy-template-harga">
+                        <i class="fa-solid fa-copy"></i> Salin Harga Terakhir
+                    </button>
                     <button class="btn btn-primary" id="open-add-harga-modal">
                         <i class="fa-solid fa-plus"></i> Tambah Harga
                     </button>
@@ -245,6 +248,10 @@
                     
                     <div class="gold-prices-banner-container">
                         <img src="logo.jpg" alt="Rumaisho Shop Banner" class="gold-prices-banner">
+                    </div>
+
+                    <div class="gold-prices-date-badge" id="gold-prices-date-badge">
+                        <!-- Filled dynamically -->
                     </div>
                     
                     <div class="gold-prices-control-bar" data-html2canvas-ignore="true">
@@ -300,6 +307,16 @@
                     <input type="password" id="settings-confirm-pin" class="form-input" placeholder="Konfirmasi PIN Baru" maxlength="4">
                 </div>
                 <button class="btn btn-primary" id="save-pin-btn">Ubah PIN</button>
+            </div>
+
+            <div class="glass-card settings-section">
+                <h3><i class="fa-solid fa-palette"></i> Warna Tema Papan Harga Emas</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.4;">
+                    Pilih variasi warna hijau kustom khusus untuk tampilan papan Harga Emas (termasuk hasil Snapshot Status WA):
+                </p>
+                <div class="color-picker-grid" id="theme-color-picker-grid">
+                    <!-- Dibuat secara dinamis di app.js -->
+                </div>
             </div>
 
             <div class="glass-card settings-section">

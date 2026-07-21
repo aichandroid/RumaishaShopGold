@@ -251,6 +251,36 @@ export class GoldDatabase {
         return true;
     }
 
+    // --- Theme Settings ---
+    async getHargaEmasThemeColor() {
+        const client = this.getSupabase();
+        if (client) {
+            try {
+                const { data, error } = await client.from("settings").select("value").eq("key", "harga_emas_theme_color").single();
+                if (data && !error) {
+                    localStorage.setItem("rumaisho_setting_harga_emas_theme_color", data.value);
+                    return data.value;
+                }
+            } catch (e) {
+                console.error("Error fetching theme color from Supabase:", e);
+            }
+        }
+        return localStorage.getItem("rumaisho_setting_harga_emas_theme_color") || "#0db3a5"; // default tosca
+    }
+
+    async updateHargaEmasThemeColor(hex) {
+        localStorage.setItem("rumaisho_setting_harga_emas_theme_color", hex);
+        const client = this.getSupabase();
+        if (client) {
+            try {
+                await client.from("settings").upsert({ key: "harga_emas_theme_color", value: hex });
+            } catch (e) {
+                console.error("Error saving theme color to Supabase:", e);
+            }
+        }
+        return true;
+    }
+
     // --- Pembelian (Purchases) ---
     async getPembelian() {
         const client = this.getSupabase();
