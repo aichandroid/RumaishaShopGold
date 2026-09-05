@@ -364,7 +364,13 @@ export class GoldDatabase {
         const client = this.getSupabase();
         if (client) {
             try {
-                const { error } = await client.from("pembelian").delete().eq("no_seri", no_seri);
+                let query = client.from("pembelian").delete();
+                if (id && !id.startsWith("p_") && id.length > 20) {
+                    query = query.eq("id", id);
+                } else {
+                    query = query.eq("no_seri", no_seri);
+                }
+                const { error } = await query;
                 if (!error) return { success: true };
                 return { success: false, message: error.message };
             } catch (e) {
@@ -374,8 +380,64 @@ export class GoldDatabase {
 
         // Local Storage
         let local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
-        local = local.filter(p => p.id !== id && p.no_seri !== no_seri);
+        local = local.filter(p => !((id && p.id === id) || (no_seri && p.no_seri === no_seri)));
         localStorage.setItem("rumaisho_pembelian", JSON.stringify(local));
+        return { success: true };
+    }
+
+    async updatePembelian(id, updatedFields, oldNoSeri = null) {
+        const client = this.getSupabase();
+        const oldSeri = oldNoSeri || updatedFields.no_seri;
+        const newSeri = updatedFields.no_seri;
+
+        if (client) {
+            try {
+                let query = client.from("pembelian").update(updatedFields);
+                if (id && !id.startsWith("p_") && id.length > 20) {
+                    query = query.eq("id", id);
+                } else {
+                    query = query.eq("no_seri", oldSeri);
+                }
+                const { data, error } = await query.select();
+                if (!error) {
+                    // Cascade serial change to sales if serial was updated
+                    if (oldSeri && newSeri && oldSeri !== newSeri) {
+                        await client.from("penjualan").update({ no_seri: newSeri }).eq("no_seri", oldSeri);
+                    }
+                    return { success: true, data: data ? data[0] : null };
+                }
+                return { success: false, message: error.message };
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        // Local Storage
+        let local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
+        local = local.map(p => {
+            if ((id && p.id === id) || (oldSeri && p.no_seri === oldSeri)) {
+                return { ...p, ...updatedFields };
+            }
+            return p;
+        });
+        localStorage.setItem("rumaisho_pembelian", JSON.stringify(local));
+
+        // Cascade update to sales if serial changed
+        if (oldSeri && newSeri && oldSeri !== newSeri) {
+            let localSales = JSON.parse(localStorage.getItem("rumaisho_penjualan") || "[]");
+            let salesChanged = false;
+            localSales = localSales.map(s => {
+                if (s.no_seri === oldSeri) {
+                    salesChanged = true;
+                    return { ...s, no_seri: newSeri };
+                }
+                return s;
+            });
+            if (salesChanged) {
+                localStorage.setItem("rumaisho_penjualan", JSON.stringify(localSales));
+            }
+        }
+
         return { success: true };
     }
 
@@ -563,7 +625,13 @@ export class GoldDatabase {
         const client = this.getSupabase();
         if (client) {
             try {
-                const { error } = await client.from("stok_manual").delete().eq("no_seri", no_seri);
+                let query = client.from("stok_manual").delete();
+                if (id && !id.startsWith("sm_") && id.length > 20) {
+                    query = query.eq("id", id);
+                } else {
+                    query = query.eq("no_seri", no_seri);
+                }
+                const { error } = await query;
                 if (!error) return { success: true };
                 return { success: false, message: error.message };
             } catch (e) {
@@ -573,8 +641,63 @@ export class GoldDatabase {
 
         // Local Storage
         let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
-        local = local.filter(s => s.id !== id && s.no_seri !== no_seri);
+        local = local.filter(s => !((id && s.id === id) || (no_seri && s.no_seri === no_seri)));
         localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
+        return { success: true };
+    }
+
+    async updateStokManual(id, updatedFields, oldNoSeri = null) {
+        const client = this.getSupabase();
+        const oldSeri = oldNoSeri || updatedFields.no_seri;
+        const newSeri = updatedFields.no_seri;
+
+        if (client) {
+            try {
+                let query = client.from("stok_manual").update(updatedFields);
+                if (id && !id.startsWith("sm_") && id.length > 20) {
+                    query = query.eq("id", id);
+                } else {
+                    query = query.eq("no_seri", oldSeri);
+                }
+                const { data, error } = await query.select();
+                if (!error) {
+                    if (oldSeri && newSeri && oldSeri !== newSeri) {
+                        await client.from("penjualan").update({ no_seri: newSeri }).eq("no_seri", oldSeri);
+                    }
+                    return { success: true, data: data ? data[0] : null };
+                }
+                return { success: false, message: error.message };
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        // Local Storage
+        let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
+        local = local.map(s => {
+            if ((id && s.id === id) || (oldSeri && s.no_seri === oldSeri)) {
+                return { ...s, ...updatedFields };
+            }
+            return s;
+        });
+        localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
+
+        // Cascade update to sales if serial changed
+        if (oldSeri && newSeri && oldSeri !== newSeri) {
+            let localSales = JSON.parse(localStorage.getItem("rumaisho_penjualan") || "[]");
+            let salesChanged = false;
+            localSales = localSales.map(s => {
+                if (s.no_seri === oldSeri) {
+                    salesChanged = true;
+                    return { ...s, no_seri: newSeri };
+                }
+                return s;
+            });
+            if (salesChanged) {
+                localStorage.setItem("rumaisho_penjualan", JSON.stringify(localSales));
+            }
+        }
+
         return { success: true };
     }
 

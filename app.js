@@ -354,6 +354,80 @@ function setupFormEventListeners() {
         });
     });
 
+    // EDIT STOK EMAS
+    document.getElementById("btn-submit-edit-stok").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const form = document.getElementById("form-edit-stok");
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const id = document.getElementById("edit-stok-id").value;
+        const tipe = document.getElementById("edit-stok-tipe").value;
+        const oldSeri = document.getElementById("edit-stok-old-seri").value;
+        const date = document.getElementById("edit-stok-tanggal").value;
+        const noSeri = document.getElementById("edit-stok-no-seri").value.trim().toUpperCase();
+        const tahun = parseInt(document.getElementById("edit-stok-tahun").value) || new Date().getFullYear();
+        const gramasi = parseFloat(document.getElementById("edit-stok-gramasi").value) || 0;
+        const modal = parseFloat(document.getElementById("edit-stok-harga-modal").value) || 0;
+        const asal = document.getElementById("edit-stok-asal").value.trim();
+
+        if (oldSeri !== noSeri) {
+            const allStock = await db.getStokEmas();
+            const exists = allStock.some(s => (s.no_seri || "").trim().toUpperCase() === noSeri && s.id !== id);
+            if (exists) {
+                alert(`No Seri "${noSeri}" sudah terdaftar pada stok lain! Silakan gunakan nomor seri yang berbeda.`);
+                return;
+            }
+        }
+
+        const summary = `
+            <strong>Modul:</strong> Edit Data Stok Emas<br>
+            <strong>Sumber:</strong> ${tipe === "pembelian" ? "Pembelian" : "Manual"}<br>
+            <strong>Tanggal:</strong> ${formatDateIndo(date)}<br>
+            <strong>No Seri:</strong> ${noSeri}${oldSeri !== noSeri ? ` <em>(Lama: ${oldSeri})</em>` : ''}<br>
+            <strong>Tahun:</strong> ${tahun}<br>
+            <strong>Gramasi:</strong> ${gramasi} gram<br>
+            <strong>Modal/Harga Beli:</strong> ${modal > 0 ? formatRupiah(modal) : 'Rp 0'}<br>
+            ${tipe === "pembelian" ? `<strong>Nama Penjual:</strong> ${asal}<br>` : ''}
+        `;
+
+        showConfirmSubmitModal(summary, () => {
+            requestPinAuthorization(async () => {
+                let res;
+                if (tipe === "manual") {
+                    res = await db.updateStokManual(id, {
+                        tanggal_input: date,
+                        no_seri: noSeri,
+                        tahun: tahun,
+                        gramasi: gramasi,
+                        harga_modal: modal
+                    }, oldSeri);
+                } else {
+                    res = await db.updatePembelian(id, {
+                        tanggal: date,
+                        no_seri: noSeri,
+                        tahun: tahun,
+                        gramasi: gramasi,
+                        harga_beli: modal,
+                        nama_penjual: asal || "Pemasok Emas"
+                    }, oldSeri);
+                }
+
+                if (res.success) {
+                    closeModal("modal-edit-stok");
+                    await renderStokEmasTable();
+                    await renderPembelianTable();
+                    await loadDashboardData();
+                    alert("Data stok emas berhasil diperbarui!");
+                } else {
+                    alert("Gagal memperbarui stok: " + (res.message || "Terjadi kesalahan"));
+                }
+            });
+        });
+    });
+
     // TAMBAH PENJUALAN
     document.getElementById("open-add-jual-modal").addEventListener("click", async () => {
         document.getElementById("form-add-jual").reset();
@@ -757,6 +831,8 @@ async function renderPembelianTable() {
                     const res = await db.deletePembelian(id, seri);
                     if (res.success) {
                         await renderPembelianTable();
+                        await renderStokEmasTable();
+                        await loadDashboardData();
                         alert("Data pembelian berhasil dihapus!");
                     } else {
                         alert("Gagal menghapus: " + res.message);
@@ -804,6 +880,8 @@ async function renderPenjualanTable() {
                     const res = await db.deletePenjualan(id);
                     if (res.success) {
                         await renderPenjualanTable();
+                        await renderStokEmasTable();
+                        await loadDashboardData();
                         alert("Data penjualan berhasil dihapus!");
                     } else {
                         alert("Gagal menghapus: " + res.message);
@@ -906,18 +984,16 @@ async function renderStokEmasTable() {
 
         const modalText = item.harga_modal > 0 ? formatRupiah(item.harga_modal) : "-";
 
-        let aksiHtml = "-";
-        if (item.tipe_sumber === "manual" && !item.is_sold) {
-            aksiHtml = `
-                <button class="btn btn-danger btn-sm delete-stok-manual-btn" data-id="${item.id}" data-seri="${item.no_seri}">
+        const aksiHtml = `
+            <div style="display:flex; gap:0.4rem; justify-content:center; align-items:center;">
+                <button class="btn btn-secondary btn-sm edit-stok-btn" title="Edit Stok Emas" style="padding: 3px 8px; font-size: 0.78rem;">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                </button>
+                <button class="btn btn-danger btn-sm delete-stok-btn" title="Hapus Stok Emas" style="padding: 3px 8px; font-size: 0.78rem;">
                     <i class="fa-solid fa-trash-can"></i> Hapus
                 </button>
-            `;
-        } else if (item.is_sold) {
-            aksiHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Ke: ${item.sale_info?.nama_pembeli || 'Pembeli'} (${formatDateIndo(item.sale_info?.tanggal)})</span>`;
-        } else {
-            aksiHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Otomatis (Beli)</span>`;
-        }
+            </div>
+        `;
 
         tr.innerHTML = `
             <td>${index + 1}</td>
@@ -931,22 +1007,67 @@ async function renderStokEmasTable() {
             <td class="action-btns">${aksiHtml}</td>
         `;
 
-        const deleteBtn = tr.querySelector(".delete-stok-manual-btn");
+        const editBtn = tr.querySelector(".edit-stok-btn");
+        if (editBtn) {
+            editBtn.addEventListener("click", () => {
+                document.getElementById("form-edit-stok").reset();
+                document.getElementById("edit-stok-id").value = item.id || "";
+                document.getElementById("edit-stok-tipe").value = item.tipe_sumber;
+                document.getElementById("edit-stok-old-seri").value = item.no_seri || "";
+                document.getElementById("edit-stok-tanggal").value = (item.tanggal_masuk && item.tanggal_masuk !== "-") ? item.tanggal_masuk : new Date().toISOString().split("T")[0];
+                document.getElementById("edit-stok-no-seri").value = item.no_seri || "";
+                document.getElementById("edit-stok-tahun").value = (item.tahun && item.tahun !== "-") ? item.tahun : new Date().getFullYear();
+                document.getElementById("edit-stok-gramasi").value = item.gramasi || "";
+                document.getElementById("edit-stok-harga-modal").value = item.harga_modal || "";
+                document.getElementById("edit-stok-asal").value = (item.keterangan_asal && item.keterangan_asal !== "-" && item.keterangan_asal !== "Input Manual") ? item.keterangan_asal : "";
+
+                const asalGroup = document.getElementById("edit-stok-asal-group");
+                if (asalGroup) {
+                    if (item.tipe_sumber === "pembelian") {
+                        asalGroup.querySelector("label").textContent = "Nama Penjual";
+                        document.getElementById("edit-stok-asal").placeholder = "Nama penjual asal";
+                    } else {
+                        asalGroup.querySelector("label").textContent = "Keterangan Asal (Opsional)";
+                        document.getElementById("edit-stok-asal").placeholder = "Keterangan asal stok";
+                    }
+                }
+
+                openModal("modal-edit-stok");
+            });
+        }
+
+        const deleteBtn = tr.querySelector(".delete-stok-btn");
         if (deleteBtn) {
             deleteBtn.addEventListener("click", () => {
                 const id = item.id;
                 const seri = item.no_seri;
-                requestPinAuthorization(async () => {
-                    if (confirm(`Apakah Anda yakin ingin menghapus data Stok Manual No Seri: ${seri}?`)) {
-                        const res = await db.deleteStokManual(id, seri);
-                        if (res.success) {
-                            await renderStokEmasTable();
-                            alert("Data stok manual berhasil dihapus!");
+                const isSold = item.is_sold;
+                const tipe = item.tipe_sumber;
+
+                let confirmMsg = `Apakah Anda yakin ingin menghapus data stok emas No Seri: ${seri}?`;
+                if (isSold) {
+                    confirmMsg = `PERINGATAN: Emas No Seri ${seri} berstatus TERJUAL ke "${item.sale_info?.nama_pembeli || 'Pembeli'}".\n\nMenghapus stok ini dari inventaris dapat mempengaruhi sinkronisasi data transaksi penjualan.\nApakah Anda tetap yakin ingin menghapusnya?`;
+                }
+
+                if (confirm(confirmMsg)) {
+                    requestPinAuthorization(async () => {
+                        let res;
+                        if (tipe === "manual") {
+                            res = await db.deleteStokManual(id, seri);
                         } else {
-                            alert("Gagal menghapus stok: " + res.message);
+                            res = await db.deletePembelian(id, seri);
                         }
-                    }
-                });
+
+                        if (res && res.success) {
+                            await renderStokEmasTable();
+                            await renderPembelianTable();
+                            await loadDashboardData();
+                            alert("Data stok emas berhasil dihapus!");
+                        } else {
+                            alert("Gagal menghapus stok: " + (res?.message || "Terjadi kesalahan"));
+                        }
+                    });
+                }
             });
         }
 

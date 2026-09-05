@@ -596,6 +596,52 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
         </div>
     </div>
 
+    <!-- MODAL: EDIT STOK EMAS -->
+    <div id="modal-edit-stok" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Data Stok Emas</h3>
+                <button class="close-modal-btn" data-modal="modal-edit-stok">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-stok">
+                    <input type="hidden" id="edit-stok-id">
+                    <input type="hidden" id="edit-stok-tipe">
+                    <input type="hidden" id="edit-stok-old-seri">
+                    
+                    <div class="form-group">
+                        <label for="edit-stok-tanggal">Tanggal Masuk</label>
+                        <input type="date" id="edit-stok-tanggal" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-stok-no-seri">No Seri</label>
+                        <input type="text" id="edit-stok-no-seri" class="form-input" placeholder="Contoh: ANTAM-99120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-stok-tahun">Tahun</label>
+                        <input type="number" id="edit-stok-tahun" class="form-input" placeholder="Contoh: 2025" required min="1900" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-stok-gramasi">Gramasi (Gram)</label>
+                        <input type="number" step="0.001" id="edit-stok-gramasi" class="form-input" placeholder="Contoh: 1.0, 5.0" required min="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-stok-harga-modal">Modal / Harga Beli (Rp)</label>
+                        <input type="number" id="edit-stok-harga-modal" class="form-input" placeholder="Masukkan harga modal / beli" min="0">
+                    </div>
+                    <div class="form-group" id="edit-stok-asal-group">
+                        <label for="edit-stok-asal">Nama Penjual / Keterangan Asal</label>
+                        <input type="text" id="edit-stok-asal" class="form-input" placeholder="Nama penjual asal">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-edit-stok">Batal</button>
+                <button class="btn btn-primary" id="btn-submit-edit-stok">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: ADD PENJUALAN -->
     <div id="modal-add-jual" class="modal">
         <div class="modal-content">
