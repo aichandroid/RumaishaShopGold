@@ -2,8 +2,19 @@ export interface Purchase {
   id: string;
   date: string;
   serialNumber: string;
+  year: number;
+  weight: number;
   price: number;
   sellerName: string;
+}
+
+export interface ManualStock {
+  id: string;
+  dateAdded: string;
+  serialNumber: string;
+  weight: number;
+  year: number;
+  costPrice?: number;
 }
 
 export interface Sale {
@@ -24,4 +35,4 @@ export interface GoldPrice {
   type: 'Antam' | 'UBS' | 'Galeri24' | 'Perak Nadir';
 }
 
-export type AppMode = 'purchase' | 'sale' | 'recap' | 'prices' | 'settings';
+export type AppMode = 'purchase' | 'sale' | 'stock' | 'recap' | 'prices' | 'settings';

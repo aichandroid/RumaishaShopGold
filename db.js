@@ -22,10 +22,14 @@ const MOCK_GOLD_PRICES = [
 ];
 
 const MOCK_PEMBELIAN = [
-    { id: "p1", tanggal: "2026-07-10", no_seri: "ANTAM-99120", harga_beli: 1350000, nama_penjual: "Budi Santoso" },
-    { id: "p2", tanggal: "2026-07-12", no_seri: "UBS-77123", harga_beli: 1320000, nama_penjual: "Siti Rahma" },
-    { id: "p3", tanggal: "2026-07-15", no_seri: "G24-55412", harga_beli: 1330000, nama_penjual: "Andi Wijaya" },
-    { id: "p4", tanggal: "2026-07-16", no_seri: "PRK-11029", harga_beli: 220000, nama_penjual: "Eko Prasetyo" }
+    { id: "p1", tanggal: "2026-07-10", no_seri: "ANTAM-99120", tahun: 2024, gramasi: 1, harga_beli: 1350000, nama_penjual: "Budi Santoso" },
+    { id: "p2", tanggal: "2026-07-12", no_seri: "UBS-77123", tahun: 2025, gramasi: 1, harga_beli: 1320000, nama_penjual: "Siti Rahma" },
+    { id: "p3", tanggal: "2026-07-15", no_seri: "G24-55412", tahun: 2025, gramasi: 1, harga_beli: 1330000, nama_penjual: "Andi Wijaya" },
+    { id: "p4", tanggal: "2026-07-16", no_seri: "PRK-11029", tahun: 2026, gramasi: 10, harga_beli: 220000, nama_penjual: "Eko Prasetyo" }
+];
+
+const MOCK_STOK_MANUAL = [
+    { id: "sm1", tanggal_input: "2026-07-14", no_seri: "ANTAM-2024-5501", gramasi: 5, tahun: 2024, harga_modal: 6900000 }
 ];
 
 const MOCK_PENJUALAN = [
@@ -63,6 +67,28 @@ export class GoldDatabase {
     initLocalData() {
         if (!localStorage.getItem("rumaisho_pembelian")) {
             localStorage.setItem("rumaisho_pembelian", JSON.stringify(MOCK_PEMBELIAN));
+        } else {
+            // Ensure existing cached data has gramasi & tahun property
+            try {
+                const existing = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
+                let changed = false;
+                existing.forEach(p => {
+                    if (p.gramasi === undefined || p.gramasi === null) {
+                        p.gramasi = 1;
+                        changed = true;
+                    }
+                    if (p.tahun === undefined || p.tahun === null) {
+                        p.tahun = p.tanggal ? new Date(p.tanggal).getFullYear() : 2024;
+                        changed = true;
+                    }
+                });
+                if (changed) {
+                    localStorage.setItem("rumaisho_pembelian", JSON.stringify(existing));
+                }
+            } catch (e) {}
+        }
+        if (!localStorage.getItem("rumaisho_stok_manual")) {
+            localStorage.setItem("rumaisho_stok_manual", JSON.stringify(MOCK_STOK_MANUAL));
         }
         if (!localStorage.getItem("rumaisho_penjualan")) {
             localStorage.setItem("rumaisho_penjualan", JSON.stringify(MOCK_PENJUALAN));
@@ -211,6 +237,19 @@ export class GoldDatabase {
                     if (!data || data.length === 0) {
                         await client.from("harga_emas").insert(h);
                     }
+                }
+            }
+
+            // Sync Stok Manual
+            const localStokManual = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
+            if (localStokManual.length > 0) {
+                const cleanStokManual = localStokManual.map(sm => {
+                    const obj = { ...sm };
+                    if (obj.id && obj.id.startsWith("sm")) delete obj.id;
+                    return obj;
+                });
+                for (const sm of cleanStokManual) {
+                    await client.from("stok_manual").upsert(sm, { onConflict: "no_seri" });
                 }
             }
 
@@ -476,4 +515,136 @@ export class GoldDatabase {
         localStorage.setItem("rumaisho_harga_emas", JSON.stringify(local));
         return { success: true };
     }
+
+    // --- Stok Emas (Manual & Aggregated) ---
+    async getStokManual() {
+        const client = this.getSupabase();
+        if (client) {
+            try {
+                const { data, error } = await client.from("stok_manual").select("*").order("tanggal_input", { ascending: false });
+                if (!error) return data;
+                console.error("Supabase getStokManual error:", error);
+            } catch (e) {
+                console.error("Supabase getStokManual exception:", e);
+            }
+        }
+        return JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]").sort((a,b) => (b.tanggal_input || "").localeCompare(a.tanggal_input || ""));
+    }
+
+    async addStokManual(item) {
+        const client = this.getSupabase();
+        const seriClean = item.no_seri.trim().toUpperCase();
+
+        // Check uniqueness across pembelian & manual stock
+        const allStock = await this.getStokEmas();
+        if (allStock.some(s => s.no_seri.trim().toUpperCase() === seriClean)) {
+            return { success: false, message: `No Seri ${item.no_seri} sudah terdaftar di sistem!` };
+        }
+
+        if (client) {
+            try {
+                const { data, error } = await client.from("stok_manual").insert([item]).select();
+                if (!error) return { success: true, data: data[0] };
+                return { success: false, message: error.message };
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        // Local Storage
+        const local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
+        const newItem = { id: "sm_" + Date.now(), ...item };
+        local.push(newItem);
+        localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
+        return { success: true, data: newItem };
+    }
+
+    async deleteStokManual(id, no_seri) {
+        const client = this.getSupabase();
+        if (client) {
+            try {
+                const { error } = await client.from("stok_manual").delete().eq("no_seri", no_seri);
+                if (!error) return { success: true };
+                return { success: false, message: error.message };
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        // Local Storage
+        let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
+        local = local.filter(s => s.id !== id && s.no_seri !== no_seri);
+        localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
+        return { success: true };
+    }
+
+    // Comprehensive Aggregated Gold Stock (Purchases + Manual Stock - Sales)
+    async getStokEmas() {
+        const purchases = await this.getPembelian();
+        const manualStocks = await this.getStokManual();
+        const sales = await this.getPenjualan();
+
+        // Map sales by no_seri for fast O(1) status check
+        const salesMap = new Map();
+        sales.forEach(s => {
+            if (s.no_seri) {
+                salesMap.set(s.no_seri.trim().toUpperCase(), s);
+            }
+        });
+
+        const unifiedList = [];
+
+        // 1. Stock items from purchases
+        purchases.forEach(p => {
+            const seri = (p.no_seri || "").trim().toUpperCase();
+            const sale = salesMap.get(seri);
+            const yearVal = (p.tahun !== undefined && p.tahun !== null && p.tahun !== "") 
+                ? p.tahun 
+                : (p.tanggal ? new Date(p.tanggal).getFullYear() : "-");
+            unifiedList.push({
+                id: p.id,
+                tipe_sumber: "pembelian",
+                sumber_label: "Pembelian",
+                tanggal_masuk: p.tanggal,
+                no_seri: p.no_seri,
+                tahun: yearVal,
+                gramasi: parseFloat(p.gramasi) || 0,
+                harga_modal: parseFloat(p.harga_beli) || 0,
+                keterangan_asal: p.nama_penjual || "-",
+                is_sold: !!sale,
+                status: sale ? "Terjual" : "Tersedia",
+                sale_info: sale || null
+            });
+        });
+
+        // 2. Stock items from manual entry
+        manualStocks.forEach(sm => {
+            const seri = (sm.no_seri || "").trim().toUpperCase();
+            const sale = salesMap.get(seri);
+            unifiedList.push({
+                id: sm.id,
+                tipe_sumber: "manual",
+                sumber_label: "Manual",
+                tanggal_masuk: sm.tanggal_input || "-",
+                no_seri: sm.no_seri,
+                tahun: sm.tahun || "-",
+                gramasi: parseFloat(sm.gramasi) || 0,
+                harga_modal: parseFloat(sm.harga_modal) || 0,
+                keterangan_asal: "Input Manual",
+                is_sold: !!sale,
+                status: sale ? "Terjual" : "Tersedia",
+                sale_info: sale || null
+            });
+        });
+
+        // Sort by tanggal_masuk descending
+        return unifiedList.sort((a, b) => String(b.tanggal_masuk).localeCompare(String(a.tanggal_masuk)));
+    }
+
+    // Active stock only (unsold)
+    async getStokAktif() {
+        const allStock = await this.getStokEmas();
+        return allStock.filter(s => !s.is_sold);
+    }
 }
+

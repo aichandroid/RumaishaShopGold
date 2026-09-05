@@ -47,6 +47,9 @@
             <li class="nav-item" data-tab="penjualan">
                 <button><i class="fa-solid fa-hand-holding-dollar"></i> Penjualan</button>
             </li>
+            <li class="nav-item" data-tab="stok-emas">
+                <button><i class="fa-solid fa-boxes-stacked"></i> Stok Emas</button>
+            </li>
             <li class="nav-item" data-tab="harga-emas">
                 <button><i class="fa-solid fa-coins"></i> Harga Emas</button>
             </li>
@@ -171,6 +174,8 @@
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No Seri</th>
+                                <th>Tahun</th>
+                                <th>Gramasi (g)</th>
                                 <th>Harga Beli</th>
                                 <th>Nama Penjual</th>
                                 <th>Aksi</th>
@@ -217,6 +222,95 @@
                                 <th>Harga Jual</th>
                                 <th>Harga Restok</th>
                                 <th>Keuntungan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= STOK EMAS PAGE ================= -->
+        <div id="page-stok-emas" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Stok Emas (Inventory)</h1>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Pantau mutasi stok emas: masuk otomatis dari Pembelian, input manual, dan berkurang dari Penjualan.
+                    </p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="open-add-stok-modal">
+                        <i class="fa-solid fa-plus"></i> Tambah Stok Manual
+                    </button>
+                    <button class="btn btn-secondary" id="export-excel-stok">
+                        <i class="fa-solid fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-secondary" id="export-pdf-stok">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Metrics Cards for Stock -->
+            <div class="dashboard-summary-grid">
+                <div class="summary-card">
+                    <span class="summary-label">Stok Emas Aktif</span>
+                    <span class="summary-value" id="stok-total-item">0 Item</span>
+                    <i class="fa-solid fa-boxes-stacked summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Total Berat Aktif</span>
+                    <span class="summary-value" id="stok-total-gram">0 g</span>
+                    <i class="fa-solid fa-scale-balanced summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Total Nilai Modal Stok</span>
+                    <span class="summary-value" id="stok-total-modal">Rp 0</span>
+                    <i class="fa-solid fa-vault summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Item Terjual</span>
+                    <span class="summary-value" id="stok-total-terjual">0 Item</span>
+                    <i class="fa-solid fa-hand-holding-dollar summary-icon"></i>
+                </div>
+            </div>
+
+            <!-- Stock Table Card with Search & Filters -->
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+                    <!-- Filter status tab buttons -->
+                    <div class="recap-tab-container" style="margin-bottom: 0;">
+                        <button class="recap-tab-btn active" id="filter-stok-btn-active" data-stok-filter="active">
+                            <i class="fa-solid fa-box-open"></i> Stok Tersedia
+                        </button>
+                        <button class="recap-tab-btn" id="filter-stok-btn-all" data-stok-filter="all">
+                            <i class="fa-solid fa-list-check"></i> Semua Riwayat (Termasuk Terjual)
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div style="position: relative; min-width: 250px;">
+                        <input type="text" id="filter-stok-search" class="form-input" placeholder="Cari No Seri / Penjual..." style="padding-left: 2.25rem; margin-bottom: 0;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;"></i>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="stok-emas-table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Tanggal Masuk</th>
+                                <th>No Seri</th>
+                                <th>Tahun</th>
+                                <th>Gramasi (g)</th>
+                                <th>Modal / Beli</th>
+                                <th>Sumber</th>
+                                <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -349,8 +443,20 @@ CREATE TABLE pembelian (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal DATE NOT NULL,
     no_seri TEXT NOT NULL UNIQUE,
+    tahun INTEGER NOT NULL DEFAULT 2024,
+    gramasi NUMERIC NOT NULL DEFAULT 1,
     harga_beli NUMERIC NOT NULL,
     nama_penjual TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE stok_manual (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal_input DATE NOT NULL,
+    no_seri TEXT NOT NULL UNIQUE,
+    gramasi NUMERIC NOT NULL,
+    tahun INTEGER NOT NULL,
+    harga_modal NUMERIC DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -390,6 +496,7 @@ INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NO
 
 -- Pilihan A (Paling Mudah): Nonaktifkan RLS pada seluruh tabel
 ALTER TABLE pembelian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE stok_manual DISABLE ROW LEVEL SECURITY;
 ALTER TABLE penjualan DISABLE ROW LEVEL SECURITY;
 ALTER TABLE harga_emas DISABLE ROW LEVEL SECURITY;
 ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
@@ -427,6 +534,14 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                         <input type="text" id="beli-no-seri" class="form-input" placeholder="Contoh: ANTAM-99120" required>
                     </div>
                     <div class="form-group">
+                        <label for="beli-tahun">Tahun</label>
+                        <input type="number" id="beli-tahun" class="form-input" placeholder="Contoh: 2025" required min="1900" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="beli-gramasi">Gramasi (Gram)</label>
+                        <input type="number" step="0.001" id="beli-gramasi" class="form-input" placeholder="Contoh: 1.0 atau 0.5" required min="0.001">
+                    </div>
+                    <div class="form-group">
                         <label for="beli-harga">Harga Beli (Rp)</label>
                         <input type="number" id="beli-harga" class="form-input" placeholder="Masukkan harga beli" required min="0">
                     </div>
@@ -439,6 +554,44 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-modal="modal-add-beli">Batal</button>
                 <button class="btn btn-primary" id="btn-submit-beli">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD STOK MANUAL -->
+    <div id="modal-add-stok" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Stok Emas Manual</h3>
+                <button class="close-modal-btn" data-modal="modal-add-stok">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-stok">
+                    <div class="form-group">
+                        <label for="stok-tanggal">Tanggal Input</label>
+                        <input type="date" id="stok-tanggal" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stok-no-seri">No Seri</label>
+                        <input type="text" id="stok-no-seri" class="form-input" placeholder="Contoh: ANTAM-2025-01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stok-gramasi">Gramasi (Gram)</label>
+                        <input type="number" step="0.001" id="stok-gramasi" class="form-input" placeholder="Contoh: 1.0, 5.0, atau 10.0" required min="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label for="stok-tahun">Tahun</label>
+                        <input type="number" id="stok-tahun" class="form-input" placeholder="Contoh: 2025" required min="1900" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="stok-harga-modal">Harga Modal / Beli (Rp) - Opsional</label>
+                        <input type="number" id="stok-harga-modal" class="form-input" placeholder="Masukkan harga modal restok (opsional)" min="0">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="modal-add-stok">Batal</button>
+                <button class="btn btn-primary" id="btn-submit-stok">Simpan Stok</button>
             </div>
         </div>
     </div>

@@ -161,6 +161,7 @@ async function initApp() {
     // 4. Set Event Listeners for Buttons & Forms
     setupFormEventListeners();
     setupDropdownEventListeners();
+    setupStokEventListeners();
     setupRecapTabEventListeners();
     setupSettingsEventListeners();
     setupExportEventListeners();
@@ -208,6 +209,8 @@ async function onTabChange(tabId) {
         await renderPembelianTable();
     } else if (tabId === "penjualan") {
         await renderPenjualanTable();
+    } else if (tabId === "stok-emas") {
+        await renderStokEmasTable();
     } else if (tabId === "harga-emas") {
         await renderHargaEmasTable();
     } else if (tabId === "settings") {
@@ -249,6 +252,7 @@ function setupFormEventListeners() {
     document.getElementById("open-add-beli-modal").addEventListener("click", () => {
         document.getElementById("form-add-beli").reset();
         document.getElementById("beli-tanggal").value = new Date().toISOString().split("T")[0];
+        document.getElementById("beli-tahun").value = new Date().getFullYear();
         openModal("modal-add-beli");
     });
 
@@ -262,6 +266,8 @@ function setupFormEventListeners() {
 
         const date = document.getElementById("beli-tanggal").value;
         const noSeri = document.getElementById("beli-no-seri").value.trim().toUpperCase();
+        const tahun = parseInt(document.getElementById("beli-tahun").value) || new Date().getFullYear();
+        const gramasi = parseFloat(document.getElementById("beli-gramasi").value) || 0;
         const harga = parseFloat(document.getElementById("beli-harga").value);
         const penjual = document.getElementById("beli-penjual").value.trim();
 
@@ -270,6 +276,8 @@ function setupFormEventListeners() {
             <strong>Modul:</strong> Pembelian Emas<br>
             <strong>Tanggal:</strong> ${formatDateIndo(date)}<br>
             <strong>No Seri:</strong> ${noSeri}<br>
+            <strong>Tahun:</strong> ${tahun}<br>
+            <strong>Gramasi:</strong> ${gramasi} gram<br>
             <strong>Harga Beli:</strong> ${formatRupiah(harga)}<br>
             <strong>Nama Penjual:</strong> ${penjual}
         `;
@@ -279,6 +287,8 @@ function setupFormEventListeners() {
                 const res = await db.addPembelian({
                     tanggal: date,
                     no_seri: noSeri,
+                    tahun: tahun,
+                    gramasi: gramasi,
                     harga_beli: harga,
                     nama_penjual: penjual
                 });
@@ -288,6 +298,57 @@ function setupFormEventListeners() {
                     alert("Data pembelian berhasil ditambahkan!");
                 } else {
                     alert("Gagal menambahkan data: " + res.message);
+                }
+            });
+        });
+    });
+
+    // TAMBAH STOK MANUAL
+    document.getElementById("open-add-stok-modal").addEventListener("click", () => {
+        document.getElementById("form-add-stok").reset();
+        document.getElementById("stok-tanggal").value = new Date().toISOString().split("T")[0];
+        document.getElementById("stok-tahun").value = new Date().getFullYear();
+        openModal("modal-add-stok");
+    });
+
+    document.getElementById("btn-submit-stok").addEventListener("click", (e) => {
+        e.preventDefault();
+        const form = document.getElementById("form-add-stok");
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const date = document.getElementById("stok-tanggal").value;
+        const noSeri = document.getElementById("stok-no-seri").value.trim().toUpperCase();
+        const gramasi = parseFloat(document.getElementById("stok-gramasi").value) || 0;
+        const tahun = parseInt(document.getElementById("stok-tahun").value) || new Date().getFullYear();
+        const modal = parseFloat(document.getElementById("stok-harga-modal").value) || 0;
+
+        const summary = `
+            <strong>Modul:</strong> Tambah Stok Emas Manual<br>
+            <strong>Tanggal Input:</strong> ${formatDateIndo(date)}<br>
+            <strong>No Seri:</strong> ${noSeri}<br>
+            <strong>Gramasi:</strong> ${gramasi} gram<br>
+            <strong>Tahun:</strong> ${tahun}<br>
+            <strong>Modal/Harga Beli:</strong> ${modal > 0 ? formatRupiah(modal) : 'Tidak ditentukan'}
+        `;
+
+        showConfirmSubmitModal(summary, () => {
+            requestPinAuthorization(async () => {
+                const res = await db.addStokManual({
+                    tanggal_input: date,
+                    no_seri: noSeri,
+                    gramasi: gramasi,
+                    tahun: tahun,
+                    harga_modal: modal
+                });
+                if (res.success) {
+                    closeModal("modal-add-stok");
+                    await renderStokEmasTable();
+                    alert("Data stok emas manual berhasil ditambahkan!");
+                } else {
+                    alert("Gagal menambahkan stok: " + res.message);
                 }
             });
         });
@@ -565,20 +626,31 @@ function setupDropdownEventListeners() {
         document.getElementById("jual-no-seri-manual").value = "";
         document.getElementById("jual-no-seri-manual").focus();
     });
+
+    // Auto-fill when typing known serial in manual box
+    document.getElementById("jual-no-seri-manual").addEventListener("input", async (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        if (val) {
+            const available = await db.getStokAktif();
+            const match = available.find(s => s.no_seri.trim().toUpperCase() === val);
+            if (match) {
+                if (match.gramasi) document.getElementById("jual-gramasi").value = match.gramasi;
+                if (match.harga_modal) {
+                    document.getElementById("jual-harga-restok").value = match.harga_modal;
+                    const jual = parseFloat(document.getElementById("jual-harga-jual").value) || 0;
+                    document.getElementById("jual-keuntungan").value = formatRupiah(jual - match.harga_modal);
+                }
+            }
+        }
+    });
 }
 
 async function populateSerialDropdown() {
     const listContainer = document.getElementById("jual-no-seri-options");
     listContainer.innerHTML = "";
 
-    const purchases = await db.getPembelian();
-    const sales = await db.getPenjualan();
-
-    // Find serial numbers already sold
-    const soldSerials = new Set(sales.map(s => s.no_seri));
-
-    // Filter purchases for unsold serial numbers
-    const availableItems = purchases.filter(p => !soldSerials.has(p.no_seri));
+    // Fetch active available items from unified stock (Purchases + Manual Stock)
+    const availableItems = await db.getStokAktif();
 
     if (availableItems.length === 0) {
         const li = document.createElement("li");
@@ -594,19 +666,35 @@ async function populateSerialDropdown() {
         const li = document.createElement("li");
         li.className = "dropdown-option-item";
         li.setAttribute("data-value", item.no_seri);
-        li.setAttribute("data-harga-beli", item.harga_beli);
-        li.textContent = `${item.no_seri} (Beli: ${formatRupiah(item.harga_beli)})`;
+        li.setAttribute("data-harga-beli", item.harga_modal || 0);
+        li.setAttribute("data-gramasi", item.gramasi || 0);
+
+        const details = [];
+        if (item.gramasi) details.push(`${item.gramasi}g`);
+        if (item.tahun && item.tahun !== "-") details.push(`Thn ${item.tahun}`);
+        if (item.harga_modal > 0) details.push(`Modal: ${formatRupiah(item.harga_modal)}`);
+        const detailStr = details.length > 0 ? ` (${details.join(" | ")})` : "";
+
+        li.textContent = `${item.no_seri}${detailStr}`;
         
         li.addEventListener("click", () => {
             document.getElementById("jual-no-seri-select-input").value = item.no_seri;
             document.getElementById("jual-no-seri-value").value = item.no_seri;
             
-            // Set auto price restock defaults to buying price
-            document.getElementById("jual-harga-restok").value = item.harga_beli;
+            // Auto fill gramasi if available
+            if (item.gramasi !== undefined && item.gramasi !== null && item.gramasi !== "") {
+                document.getElementById("jual-gramasi").value = item.gramasi;
+            }
+
+            // Set auto price restock defaults to buying/modal price
+            if (item.harga_modal !== undefined && item.harga_modal !== null) {
+                document.getElementById("jual-harga-restok").value = item.harga_modal;
+            }
             
             // Force recalculate profit
             const jual = parseFloat(document.getElementById("jual-harga-jual").value) || 0;
-            document.getElementById("jual-keuntungan").value = formatRupiah(jual - item.harga_beli);
+            const restok = parseFloat(item.harga_modal) || 0;
+            document.getElementById("jual-keuntungan").value = formatRupiah(jual - restok);
 
             document.getElementById("jual-no-seri-dropdown-list").classList.remove("active");
         });
@@ -638,15 +726,18 @@ async function renderPembelianTable() {
 
     const list = await db.getPembelian();
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Tidak ada data pembelian.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Tidak ada data pembelian.</td></tr>`;
         return;
     }
 
     list.forEach(item => {
         const tr = document.createElement("tr");
+        const itemYear = item.tahun || (item.tanggal ? new Date(item.tanggal).getFullYear() : '-');
         tr.innerHTML = `
             <td>${formatDateIndo(item.tanggal)}</td>
             <td><strong>${item.no_seri}</strong></td>
+            <td>${itemYear}</td>
+            <td>${item.gramasi !== undefined && item.gramasi !== null ? item.gramasi : '-'} g</td>
             <td>${formatRupiah(item.harga_beli)}</td>
             <td>${item.nama_penjual}</td>
             <td class="action-btns">
@@ -720,6 +811,144 @@ async function renderPenjualanTable() {
                 }
             });
         });
+
+        tbody.appendChild(tr);
+    });
+}
+
+// --- Stok Emas State & Handlers ---
+let currentStokFilter = "active"; // "active" or "all"
+let currentStokSearch = "";
+
+function setupStokEventListeners() {
+    const filterBtnActive = document.getElementById("filter-stok-btn-active");
+    const filterBtnAll = document.getElementById("filter-stok-btn-all");
+    const searchInput = document.getElementById("filter-stok-search");
+
+    if (filterBtnActive && filterBtnAll) {
+        filterBtnActive.addEventListener("click", () => {
+            filterBtnActive.classList.add("active");
+            filterBtnAll.classList.remove("active");
+            currentStokFilter = "active";
+            renderStokEmasTable();
+        });
+
+        filterBtnAll.addEventListener("click", () => {
+            filterBtnAll.classList.add("active");
+            filterBtnActive.classList.remove("active");
+            currentStokFilter = "all";
+            renderStokEmasTable();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            currentStokSearch = e.target.value.toLowerCase().trim();
+            renderStokEmasTable();
+        });
+    }
+}
+
+async function renderStokEmasTable() {
+    const tbody = document.querySelector("#stok-emas-table tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const allStocks = await db.getStokEmas();
+
+    // 1. Calculate Summary Metrics
+    const activeItems = allStocks.filter(s => !s.is_sold);
+    const soldItems = allStocks.filter(s => s.is_sold);
+
+    const totalActiveCount = activeItems.length;
+    const totalActiveGram = activeItems.reduce((sum, item) => sum + (parseFloat(item.gramasi) || 0), 0);
+    const totalActiveModal = activeItems.reduce((sum, item) => sum + (parseFloat(item.harga_modal) || 0), 0);
+    const totalSoldCount = soldItems.length;
+
+    // Update Dashboard & Stock Cards
+    const stokItemEl = document.getElementById("stok-total-item");
+    const stokGramEl = document.getElementById("stok-total-gram");
+    const stokModalEl = document.getElementById("stok-total-modal");
+    const stokTerjualEl = document.getElementById("stok-total-terjual");
+
+    if (stokItemEl) stokItemEl.textContent = `${totalActiveCount} Item`;
+    if (stokGramEl) stokGramEl.textContent = `${Number(totalActiveGram.toFixed(3))} g`;
+    if (stokModalEl) stokModalEl.textContent = formatRupiah(totalActiveModal);
+    if (stokTerjualEl) stokTerjualEl.textContent = `${totalSoldCount} Item`;
+
+    // 2. Filter & Search
+    let displayList = allStocks;
+    if (currentStokFilter === "active") {
+        displayList = displayList.filter(s => !s.is_sold);
+    }
+
+    if (currentStokSearch) {
+        displayList = displayList.filter(s => {
+            const seri = (s.no_seri || "").toLowerCase();
+            const asal = (s.keterangan_asal || "").toLowerCase();
+            const sumber = (s.sumber_label || "").toLowerCase();
+            const thn = String(s.tahun || "").toLowerCase();
+            return seri.includes(currentStokSearch) || asal.includes(currentStokSearch) || sumber.includes(currentStokSearch) || thn.includes(currentStokSearch);
+        });
+    }
+
+    if (displayList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding: 2rem;">Tidak ada data stok emas yang sesuai filter.</td></tr>`;
+        return;
+    }
+
+    displayList.forEach((item, index) => {
+        const tr = document.createElement("tr");
+
+        const statusBadge = item.is_sold
+            ? `<span style="display:inline-flex; align-items:center; gap:4px; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);"><i class="fa-solid fa-hand-holding-dollar"></i> Terjual</span>`
+            : `<span style="display:inline-flex; align-items:center; gap:4px; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-check"></i> Tersedia</span>`;
+
+        const modalText = item.harga_modal > 0 ? formatRupiah(item.harga_modal) : "-";
+
+        let aksiHtml = "-";
+        if (item.tipe_sumber === "manual" && !item.is_sold) {
+            aksiHtml = `
+                <button class="btn btn-danger btn-sm delete-stok-manual-btn" data-id="${item.id}" data-seri="${item.no_seri}">
+                    <i class="fa-solid fa-trash-can"></i> Hapus
+                </button>
+            `;
+        } else if (item.is_sold) {
+            aksiHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Ke: ${item.sale_info?.nama_pembeli || 'Pembeli'} (${formatDateIndo(item.sale_info?.tanggal)})</span>`;
+        } else {
+            aksiHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Otomatis (Beli)</span>`;
+        }
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${formatDateIndo(item.tanggal_masuk)}</td>
+            <td><strong>${item.no_seri}</strong></td>
+            <td>${item.tahun || '-'}</td>
+            <td><strong style="color:var(--gold);">${item.gramasi} g</strong></td>
+            <td>${modalText}</td>
+            <td><span style="font-size:0.85rem; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 4px; border: 1px solid var(--border-color);">${item.sumber_label}</span></td>
+            <td>${statusBadge}</td>
+            <td class="action-btns">${aksiHtml}</td>
+        `;
+
+        const deleteBtn = tr.querySelector(".delete-stok-manual-btn");
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", () => {
+                const id = item.id;
+                const seri = item.no_seri;
+                requestPinAuthorization(async () => {
+                    if (confirm(`Apakah Anda yakin ingin menghapus data Stok Manual No Seri: ${seri}?`)) {
+                        const res = await db.deleteStokManual(id, seri);
+                        if (res.success) {
+                            await renderStokEmasTable();
+                            alert("Data stok manual berhasil dihapus!");
+                        } else {
+                            alert("Gagal menghapus stok: " + res.message);
+                        }
+                    }
+                });
+            });
+        }
 
         tbody.appendChild(tr);
     });
@@ -941,9 +1170,9 @@ async function loadDashboardData() {
         totalUntung += parseFloat(s.keuntungan) || 0;
     });
 
-    // Calculate Active Stock (Items purchased but not yet sold)
-    const soldSerials = new Set(sales.map(s => s.no_seri));
-    const activeStock = purchases.filter(p => !soldSerials.has(p.no_seri)).length;
+    // Calculate Active Stock (Items in stock but not yet sold)
+    const activeItems = await db.getStokAktif();
+    const activeStock = activeItems.length;
 
     // Render Metrics
     document.getElementById("dashboard-total-beli").textContent = formatRupiah(totalBeli);
@@ -1275,6 +1504,8 @@ function setupExportEventListeners() {
         const data = purchases.map(p => ({
             "Tanggal": p.tanggal,
             "No Seri": p.no_seri,
+            "Tahun": p.tahun || (p.tanggal ? new Date(p.tanggal).getFullYear() : "-"),
+            "Gramasi (g)": p.gramasi !== undefined ? p.gramasi : 0,
             "Harga Beli (IDR)": p.harga_beli,
             "Nama Penjual": p.nama_penjual
         }));
@@ -1286,11 +1517,51 @@ function setupExportEventListeners() {
         const tableRows = purchases.map(p => [
             p.tanggal,
             p.no_seri,
+            p.tahun || (p.tanggal ? new Date(p.tanggal).getFullYear() : "-"),
+            `${p.gramasi !== undefined ? p.gramasi : 0} g`,
             formatRupiah(p.harga_beli),
             p.nama_penjual
         ]);
-        exportToPDF("Riwayat Pembelian Emas", ["Tanggal", "No Seri", "Harga Beli", "Nama Penjual"], tableRows, "Pembelian_Emas");
+        exportToPDF("Riwayat Pembelian Emas", ["Tanggal", "No Seri", "Tahun", "Gramasi", "Harga Beli", "Nama Penjual"], tableRows, "Pembelian_Emas");
     });
+
+    // Stok Emas Excel & PDF
+    const exportExcelStokBtn = document.getElementById("export-excel-stok");
+    if (exportExcelStokBtn) {
+        exportExcelStokBtn.addEventListener("click", async () => {
+            const stocks = await db.getStokEmas();
+            const data = stocks.map((s, idx) => ({
+                "No": idx + 1,
+                "Tanggal Masuk": s.tanggal_masuk,
+                "No Seri": s.no_seri,
+                "Tahun": s.tahun || "-",
+                "Gramasi (g)": s.gramasi,
+                "Modal/Beli (IDR)": s.harga_modal,
+                "Sumber": s.sumber_label,
+                "Status": s.status,
+                "Keterangan": s.is_sold ? `Terjual ke ${s.sale_info?.nama_pembeli || 'Pembeli'}` : s.keterangan_asal
+            }));
+            exportToExcel(data, "Stok_Emas");
+        });
+    }
+
+    const exportPdfStokBtn = document.getElementById("export-pdf-stok");
+    if (exportPdfStokBtn) {
+        exportPdfStokBtn.addEventListener("click", async () => {
+            const stocks = await db.getStokEmas();
+            const tableRows = stocks.map((s, idx) => [
+                idx + 1,
+                s.tanggal_masuk,
+                s.no_seri,
+                s.tahun || "-",
+                `${s.gramasi} g`,
+                s.harga_modal > 0 ? formatRupiah(s.harga_modal) : "-",
+                s.sumber_label,
+                s.status
+            ]);
+            exportToPDF("Laporan Stok Emas", ["No", "Tgl Masuk", "No Seri", "Tahun", "Gramasi", "Modal", "Sumber", "Status"], tableRows, "Stok_Emas");
+        });
+    }
 
     // Penjualan Excel & PDF
     document.getElementById("export-excel-jual").addEventListener("click", async () => {
@@ -1511,15 +1782,18 @@ function processImportData(data, type, fileInput) {
     };
 
     if (type === "pembelian") {
-        // Expected columns: Tanggal, No Seri, Harga Beli (IDR), Nama Penjual
+        // Expected columns: Tanggal, No Seri, Tahun, Gramasi (g), Harga Beli (IDR), Nama Penjual
         data.forEach((row, i) => {
             const dateVal = row["Tanggal"];
             const serialVal = row["No Seri"] || row["No. Seri"];
+            const tahunVal = row["Tahun"] || row["Year"];
+            const gramVal = row["Gramasi (g)"] || row["Gramasi"] || row["Gram"];
             const hargaVal = row["Harga Beli (IDR)"] || row["Harga Beli"];
             const penjualVal = row["Nama Penjual"] || row["Penjual"];
 
             const dateStrRaw = dateVal ? String(dateVal).trim() : "";
             const serialStrRaw = serialVal ? String(serialVal).trim() : "";
+            const gramasi = cleanGram(gramVal) || 1;
             const hargaBeli = cleanPrice(hargaVal);
 
             // Skip blank/empty/summary rows or if harga_beli is 0
@@ -1537,9 +1811,13 @@ function processImportData(data, type, fileInput) {
                 dateStr = ExcelDateToJSDate(Number(dateVal));
             }
 
+            const parsedYear = parseInt(tahunVal) || (dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear());
+
             validRecords.push({
                 tanggal: dateStr,
                 no_seri: serialStrRaw.toUpperCase(),
+                tahun: parsedYear,
+                gramasi: gramasi,
                 harga_beli: hargaBeli,
                 nama_penjual: String(penjualVal).trim()
             });
