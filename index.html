@@ -489,6 +489,23 @@ CREATE TABLE settings (
 INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NOTHING;
 
 -- ==========================================================
+-- SCRIPT MIGRASI (Jika tabel sudah ada & muncul error kolom)
+-- ==========================================================
+ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;
+ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER NOT NULL DEFAULT 2024;
+CREATE TABLE IF NOT EXISTS stok_manual (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal_input DATE NOT NULL,
+    no_seri TEXT NOT NULL UNIQUE,
+    gramasi NUMERIC NOT NULL,
+    tahun INTEGER NOT NULL,
+    harga_modal NUMERIC DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+ALTER TABLE pembelian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE stok_manual DISABLE ROW LEVEL SECURITY;
+
+-- ==========================================================
 -- JIKA MENGALAMI ERROR: 'violates row-level security policy'
 -- ==========================================================
 -- Supabase secara default memblokir akses tulis anonim jika RLS aktif.
@@ -543,7 +560,7 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                     </div>
                     <div class="form-group">
                         <label for="beli-harga">Harga Beli (Rp)</label>
-                        <input type="number" id="beli-harga" class="form-input" placeholder="Masukkan harga beli" required min="0">
+                        <input type="text" inputmode="numeric" id="beli-harga" class="form-input" placeholder="Contoh: 1.000.000" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="beli-penjual">Nama Penjual</label>
@@ -585,7 +602,7 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                     </div>
                     <div class="form-group">
                         <label for="stok-harga-modal">Harga Modal / Beli (Rp) - Opsional</label>
-                        <input type="number" id="stok-harga-modal" class="form-input" placeholder="Masukkan harga modal restok (opsional)" min="0">
+                        <input type="text" inputmode="numeric" id="stok-harga-modal" class="form-input" placeholder="Contoh: 1.000.000 (opsional)" autocomplete="off">
                     </div>
                 </form>
             </div>
@@ -627,7 +644,7 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                     </div>
                     <div class="form-group">
                         <label for="edit-stok-harga-modal">Modal / Harga Beli (Rp)</label>
-                        <input type="number" id="edit-stok-harga-modal" class="form-input" placeholder="Masukkan harga modal / beli" min="0">
+                        <input type="text" inputmode="numeric" id="edit-stok-harga-modal" class="form-input" placeholder="Contoh: 1.000.000" autocomplete="off">
                     </div>
                     <div class="form-group" id="edit-stok-asal-group">
                         <label for="edit-stok-asal">Nama Penjual / Keterangan Asal</label>
@@ -692,11 +709,11 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                     </div>
                     <div class="form-group">
                         <label for="jual-harga-jual">Harga Jual (Rp)</label>
-                        <input type="number" id="jual-harga-jual" class="form-input" placeholder="Masukkan harga jual" required min="0">
+                        <input type="text" inputmode="numeric" id="jual-harga-jual" class="form-input" placeholder="Contoh: 1.500.000" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="jual-harga-restok">Harga Restok (Rp)</label>
-                        <input type="number" id="jual-harga-restok" class="form-input" placeholder="Masukkan harga restok" required min="0">
+                        <input type="text" inputmode="numeric" id="jual-harga-restok" class="form-input" placeholder="Contoh: 1.350.000" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Keuntungan (Otomatis)</label>
@@ -730,7 +747,7 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                     </div>
                     <div class="form-group">
                         <label for="harga-nilai">Harga (Rp)</label>
-                        <input type="number" id="harga-nilai" class="form-input" placeholder="Masukkan nominal harga" required min="0">
+                        <input type="text" inputmode="numeric" id="harga-nilai" class="form-input" placeholder="Contoh: 1.450.000" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="harga-jenis">Jenis Logam Mulia</label>

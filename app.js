@@ -24,6 +24,67 @@ function formatRupiah(value) {
     }).format(value);
 }
 
+// Helper for formatting number input with thousand separator (e.g. 1000000 -> "1.000.000")
+function formatRibuanInput(value) {
+    if (value === null || value === undefined || value === "") return "";
+    const clean = String(value).replace(/[^0-9]/g, "");
+    if (!clean) return "";
+    return new Intl.NumberFormat("id-ID").format(parseInt(clean, 10));
+}
+
+// Helper for parsing ribuan input string to numeric value (e.g. "1.000.000" -> 1000000)
+function parseRibuan(value) {
+    if (typeof value === "number") return isNaN(value) ? 0 : value;
+    if (!value) return 0;
+    const clean = String(value).replace(/[^0-9]/g, "");
+    return clean ? parseInt(clean, 10) : 0;
+}
+
+// Helper to attach live thousand separator formatting to text input
+function setupRibuanInput(inputEl, onChangeCallback = null) {
+    if (!inputEl) return;
+
+    inputEl.addEventListener("input", () => {
+        const raw = inputEl.value;
+        const cursor = inputEl.selectionStart;
+        const lenBefore = raw.length;
+
+        const formatted = formatRibuanInput(raw);
+        inputEl.value = formatted;
+
+        if (cursor !== null) {
+            const diff = formatted.length - lenBefore;
+            const newCursor = Math.max(0, cursor + diff);
+            inputEl.setSelectionRange(newCursor, newCursor);
+        }
+
+        if (typeof onChangeCallback === "function") {
+            onChangeCallback(parseRibuan(formatted));
+        }
+    });
+
+    inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+            const start = inputEl.selectionStart;
+            const end = inputEl.selectionEnd;
+            if (start === end && start > 0) {
+                const charBefore = inputEl.value[start - 1];
+                if (charBefore === ".") {
+                    e.preventDefault();
+                    const val = inputEl.value;
+                    const newVal = val.slice(0, start - 2) + val.slice(start);
+                    inputEl.value = formatRibuanInput(newVal);
+                    const newPos = Math.max(0, start - 2);
+                    inputEl.setSelectionRange(newPos, newPos);
+                    if (typeof onChangeCallback === "function") {
+                        onChangeCallback(parseRibuan(inputEl.value));
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Format date to local Indonesian readability
 function formatDateIndo(dateStr) {
     if (!dateStr) return "-";
@@ -248,6 +309,12 @@ function requestPinAuthorization(actionCallback) {
 }
 
 function setupFormEventListeners() {
+    // Inisialisasi pemisah ribuan otomatis pada input nominal
+    setupRibuanInput(document.getElementById("beli-harga"));
+    setupRibuanInput(document.getElementById("stok-harga-modal"));
+    setupRibuanInput(document.getElementById("edit-stok-harga-modal"));
+    setupRibuanInput(document.getElementById("harga-nilai"));
+
     // TAMBAH PEMBELIAN
     document.getElementById("open-add-beli-modal").addEventListener("click", () => {
         document.getElementById("form-add-beli").reset();
@@ -268,7 +335,7 @@ function setupFormEventListeners() {
         const noSeri = document.getElementById("beli-no-seri").value.trim().toUpperCase();
         const tahun = parseInt(document.getElementById("beli-tahun").value) || new Date().getFullYear();
         const gramasi = parseFloat(document.getElementById("beli-gramasi").value) || 0;
-        const harga = parseFloat(document.getElementById("beli-harga").value);
+        const harga = parseRibuan(document.getElementById("beli-harga").value);
         const penjual = document.getElementById("beli-penjual").value.trim();
 
         // 1. Show confirmation dialog
@@ -323,7 +390,7 @@ function setupFormEventListeners() {
         const noSeri = document.getElementById("stok-no-seri").value.trim().toUpperCase();
         const gramasi = parseFloat(document.getElementById("stok-gramasi").value) || 0;
         const tahun = parseInt(document.getElementById("stok-tahun").value) || new Date().getFullYear();
-        const modal = parseFloat(document.getElementById("stok-harga-modal").value) || 0;
+        const modal = parseRibuan(document.getElementById("stok-harga-modal").value);
 
         const summary = `
             <strong>Modul:</strong> Tambah Stok Emas Manual<br>
@@ -370,7 +437,7 @@ function setupFormEventListeners() {
         const noSeri = document.getElementById("edit-stok-no-seri").value.trim().toUpperCase();
         const tahun = parseInt(document.getElementById("edit-stok-tahun").value) || new Date().getFullYear();
         const gramasi = parseFloat(document.getElementById("edit-stok-gramasi").value) || 0;
-        const modal = parseFloat(document.getElementById("edit-stok-harga-modal").value) || 0;
+        const modal = parseRibuan(document.getElementById("edit-stok-harga-modal").value);
         const asal = document.getElementById("edit-stok-asal").value.trim();
 
         if (oldSeri !== noSeri) {
@@ -451,14 +518,14 @@ function setupFormEventListeners() {
     const keuntunganInput = document.getElementById("jual-keuntungan");
 
     function calculateProfit() {
-        const jual = parseFloat(hargaJualInput.value) || 0;
-        const restok = parseFloat(hargaRestokInput.value) || 0;
+        const jual = parseRibuan(hargaJualInput.value);
+        const restok = parseRibuan(hargaRestokInput.value);
         const profit = jual - restok;
         keuntunganInput.value = formatRupiah(profit);
     }
     
-    hargaJualInput.addEventListener("input", calculateProfit);
-    hargaRestokInput.addEventListener("input", calculateProfit);
+    setupRibuanInput(hargaJualInput, () => calculateProfit());
+    setupRibuanInput(hargaRestokInput, () => calculateProfit());
 
     document.getElementById("btn-submit-jual").addEventListener("click", (e) => {
         e.preventDefault();
@@ -486,8 +553,8 @@ function setupFormEventListeners() {
         }
 
         const pembeli = document.getElementById("jual-pembeli").value.trim();
-        const hargaJual = parseFloat(hargaJualInput.value);
-        const hargaRestok = parseFloat(hargaRestokInput.value);
+        const hargaJual = parseRibuan(hargaJualInput.value);
+        const hargaRestok = parseRibuan(hargaRestokInput.value);
         const keuntungan = hargaJual - hargaRestok;
 
         const summary = `
@@ -555,7 +622,7 @@ function setupFormEventListeners() {
 
         const date = document.getElementById("harga-tanggal").value;
         const gram = parseFloat(document.getElementById("harga-gram").value);
-        const harga = parseFloat(document.getElementById("harga-nilai").value);
+        const harga = parseRibuan(document.getElementById("harga-nilai").value);
         let jenis = document.getElementById("harga-jenis").value;
 
         if (jenis === "Lainnya") {
@@ -710,9 +777,10 @@ function setupDropdownEventListeners() {
             if (match) {
                 if (match.gramasi) document.getElementById("jual-gramasi").value = match.gramasi;
                 if (match.harga_modal) {
-                    document.getElementById("jual-harga-restok").value = match.harga_modal;
-                    const jual = parseFloat(document.getElementById("jual-harga-jual").value) || 0;
-                    document.getElementById("jual-keuntungan").value = formatRupiah(jual - match.harga_modal);
+                    document.getElementById("jual-harga-restok").value = formatRibuanInput(match.harga_modal);
+                    const jual = parseRibuan(document.getElementById("jual-harga-jual").value);
+                    const modalVal = parseRibuan(match.harga_modal);
+                    document.getElementById("jual-keuntungan").value = formatRupiah(jual - modalVal);
                 }
             }
         }
@@ -762,12 +830,12 @@ async function populateSerialDropdown() {
 
             // Set auto price restock defaults to buying/modal price
             if (item.harga_modal !== undefined && item.harga_modal !== null) {
-                document.getElementById("jual-harga-restok").value = item.harga_modal;
+                document.getElementById("jual-harga-restok").value = formatRibuanInput(item.harga_modal);
             }
             
             // Force recalculate profit
-            const jual = parseFloat(document.getElementById("jual-harga-jual").value) || 0;
-            const restok = parseFloat(item.harga_modal) || 0;
+            const jual = parseRibuan(document.getElementById("jual-harga-jual").value);
+            const restok = parseRibuan(item.harga_modal);
             document.getElementById("jual-keuntungan").value = formatRupiah(jual - restok);
 
             document.getElementById("jual-no-seri-dropdown-list").classList.remove("active");
@@ -1018,7 +1086,7 @@ async function renderStokEmasTable() {
                 document.getElementById("edit-stok-no-seri").value = item.no_seri || "";
                 document.getElementById("edit-stok-tahun").value = (item.tahun && item.tahun !== "-") ? item.tahun : new Date().getFullYear();
                 document.getElementById("edit-stok-gramasi").value = item.gramasi || "";
-                document.getElementById("edit-stok-harga-modal").value = item.harga_modal || "";
+                document.getElementById("edit-stok-harga-modal").value = item.harga_modal ? formatRibuanInput(item.harga_modal) : "";
                 document.getElementById("edit-stok-asal").value = (item.keterangan_asal && item.keterangan_asal !== "-" && item.keterangan_asal !== "Input Manual") ? item.keterangan_asal : "";
 
                 const asalGroup = document.getElementById("edit-stok-asal-group");

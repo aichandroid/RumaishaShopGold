@@ -342,7 +342,11 @@ export class GoldDatabase {
             try {
                 const { data, error } = await client.from("pembelian").insert([item]).select();
                 if (!error) return { success: true, data: data[0] };
-                return { success: false, message: error.message };
+                let msg = error.message;
+                if (msg.includes("gramasi") || msg.includes("tahun") || msg.includes("schema cache")) {
+                    msg = `Kolom database Supabase belum di-update: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER NOT NULL DEFAULT 2024;`;
+                }
+                return { success: false, message: msg };
             } catch (e) {
                 return { success: false, message: e.message };
             }
