@@ -443,7 +443,7 @@ CREATE TABLE pembelian (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal DATE NOT NULL,
     no_seri TEXT NOT NULL UNIQUE,
-    tahun INTEGER NOT NULL DEFAULT 2024,
+    tahun INTEGER DEFAULT NULL,
     gramasi NUMERIC NOT NULL DEFAULT 1,
     harga_beli NUMERIC NOT NULL,
     nama_penjual TEXT NOT NULL,
@@ -492,7 +492,8 @@ INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NO
 -- SCRIPT MIGRASI (Jika tabel sudah ada & muncul error kolom)
 -- ==========================================================
 ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;
-ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER NOT NULL DEFAULT 2024;
+ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER;
+ALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;
 CREATE TABLE IF NOT EXISTS stok_manual (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal_input DATE NOT NULL,
@@ -551,8 +552,8 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                         <input type="text" id="beli-no-seri" class="form-input" placeholder="Contoh: ANTAM-99120" required>
                     </div>
                     <div class="form-group">
-                        <label for="beli-tahun">Tahun</label>
-                        <input type="number" id="beli-tahun" class="form-input" placeholder="Contoh: 2025" required min="1900" max="2100">
+                        <label for="beli-tahun">Tahun (Opsional)</label>
+                        <input type="number" id="beli-tahun" class="form-input" placeholder="Contoh: 2025 (Opsional)" min="1900" max="2100">
                     </div>
                     <div class="form-group">
                         <label for="beli-gramasi">Gramasi (Gram)</label>
@@ -635,8 +636,8 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
                         <input type="text" id="edit-stok-no-seri" class="form-input" placeholder="Contoh: ANTAM-99120" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit-stok-tahun">Tahun</label>
-                        <input type="number" id="edit-stok-tahun" class="form-input" placeholder="Contoh: 2025" required min="1900" max="2100">
+                        <label for="edit-stok-tahun">Tahun (Opsional)</label>
+                        <input type="number" id="edit-stok-tahun" class="form-input" placeholder="Contoh: 2025 (Opsional)" min="1900" max="2100">
                     </div>
                     <div class="form-group">
                         <label for="edit-stok-gramasi">Gramasi (Gram)</label>

@@ -319,7 +319,7 @@ function setupFormEventListeners() {
     document.getElementById("open-add-beli-modal").addEventListener("click", () => {
         document.getElementById("form-add-beli").reset();
         document.getElementById("beli-tanggal").value = new Date().toISOString().split("T")[0];
-        document.getElementById("beli-tahun").value = new Date().getFullYear();
+        document.getElementById("beli-tahun").value = "";
         openModal("modal-add-beli");
     });
 
@@ -333,7 +333,8 @@ function setupFormEventListeners() {
 
         const date = document.getElementById("beli-tanggal").value;
         const noSeri = document.getElementById("beli-no-seri").value.trim().toUpperCase();
-        const tahun = parseInt(document.getElementById("beli-tahun").value) || new Date().getFullYear();
+        const tahunVal = document.getElementById("beli-tahun").value.trim();
+        const tahun = tahunVal ? parseInt(tahunVal, 10) : null;
         const gramasi = parseFloat(document.getElementById("beli-gramasi").value) || 0;
         const harga = parseRibuan(document.getElementById("beli-harga").value);
         const penjual = document.getElementById("beli-penjual").value.trim();
@@ -343,7 +344,7 @@ function setupFormEventListeners() {
             <strong>Modul:</strong> Pembelian Emas<br>
             <strong>Tanggal:</strong> ${formatDateIndo(date)}<br>
             <strong>No Seri:</strong> ${noSeri}<br>
-            <strong>Tahun:</strong> ${tahun}<br>
+            <strong>Tahun:</strong> ${tahun ? tahun : '-'}<br>
             <strong>Gramasi:</strong> ${gramasi} gram<br>
             <strong>Harga Beli:</strong> ${formatRupiah(harga)}<br>
             <strong>Nama Penjual:</strong> ${penjual}
@@ -435,7 +436,8 @@ function setupFormEventListeners() {
         const oldSeri = document.getElementById("edit-stok-old-seri").value;
         const date = document.getElementById("edit-stok-tanggal").value;
         const noSeri = document.getElementById("edit-stok-no-seri").value.trim().toUpperCase();
-        const tahun = parseInt(document.getElementById("edit-stok-tahun").value) || new Date().getFullYear();
+        const tahunVal = document.getElementById("edit-stok-tahun").value.trim();
+        const tahun = tahunVal ? parseInt(tahunVal, 10) : null;
         const gramasi = parseFloat(document.getElementById("edit-stok-gramasi").value) || 0;
         const modal = parseRibuan(document.getElementById("edit-stok-harga-modal").value);
         const asal = document.getElementById("edit-stok-asal").value.trim();
@@ -454,7 +456,7 @@ function setupFormEventListeners() {
             <strong>Sumber:</strong> ${tipe === "pembelian" ? "Pembelian" : "Manual"}<br>
             <strong>Tanggal:</strong> ${formatDateIndo(date)}<br>
             <strong>No Seri:</strong> ${noSeri}${oldSeri !== noSeri ? ` <em>(Lama: ${oldSeri})</em>` : ''}<br>
-            <strong>Tahun:</strong> ${tahun}<br>
+            <strong>Tahun:</strong> ${tahun ? tahun : '-'}<br>
             <strong>Gramasi:</strong> ${gramasi} gram<br>
             <strong>Modal/Harga Beli:</strong> ${modal > 0 ? formatRupiah(modal) : 'Rp 0'}<br>
             ${tipe === "pembelian" ? `<strong>Nama Penjual:</strong> ${asal}<br>` : ''}
@@ -874,7 +876,7 @@ async function renderPembelianTable() {
 
     list.forEach(item => {
         const tr = document.createElement("tr");
-        const itemYear = item.tahun || (item.tanggal ? new Date(item.tanggal).getFullYear() : '-');
+        const itemYear = (item.tahun !== undefined && item.tahun !== null && item.tahun !== "" && item.tahun !== "-") ? item.tahun : "-";
         tr.innerHTML = `
             <td>${formatDateIndo(item.tanggal)}</td>
             <td><strong>${item.no_seri}</strong></td>
@@ -1084,7 +1086,7 @@ async function renderStokEmasTable() {
                 document.getElementById("edit-stok-old-seri").value = item.no_seri || "";
                 document.getElementById("edit-stok-tanggal").value = (item.tanggal_masuk && item.tanggal_masuk !== "-") ? item.tanggal_masuk : new Date().toISOString().split("T")[0];
                 document.getElementById("edit-stok-no-seri").value = item.no_seri || "";
-                document.getElementById("edit-stok-tahun").value = (item.tahun && item.tahun !== "-") ? item.tahun : new Date().getFullYear();
+                document.getElementById("edit-stok-tahun").value = (item.tahun && item.tahun !== "-") ? item.tahun : "";
                 document.getElementById("edit-stok-gramasi").value = item.gramasi || "";
                 document.getElementById("edit-stok-harga-modal").value = item.harga_modal ? formatRibuanInput(item.harga_modal) : "";
                 document.getElementById("edit-stok-asal").value = (item.keterangan_asal && item.keterangan_asal !== "-" && item.keterangan_asal !== "Input Manual") ? item.keterangan_asal : "";
@@ -1693,7 +1695,7 @@ function setupExportEventListeners() {
         const data = purchases.map(p => ({
             "Tanggal": p.tanggal,
             "No Seri": p.no_seri,
-            "Tahun": p.tahun || (p.tanggal ? new Date(p.tanggal).getFullYear() : "-"),
+            "Tahun": (p.tahun !== undefined && p.tahun !== null && p.tahun !== "" && p.tahun !== "-") ? p.tahun : "-",
             "Gramasi (g)": p.gramasi !== undefined ? p.gramasi : 0,
             "Harga Beli (IDR)": p.harga_beli,
             "Nama Penjual": p.nama_penjual
@@ -1706,7 +1708,7 @@ function setupExportEventListeners() {
         const tableRows = purchases.map(p => [
             p.tanggal,
             p.no_seri,
-            p.tahun || (p.tanggal ? new Date(p.tanggal).getFullYear() : "-"),
+            (p.tahun !== undefined && p.tahun !== null && p.tahun !== "" && p.tahun !== "-") ? p.tahun : "-",
             `${p.gramasi !== undefined ? p.gramasi : 0} g`,
             formatRupiah(p.harga_beli),
             p.nama_penjual
@@ -2000,7 +2002,7 @@ function processImportData(data, type, fileInput) {
                 dateStr = ExcelDateToJSDate(Number(dateVal));
             }
 
-            const parsedYear = parseInt(tahunVal) || (dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear());
+            const parsedYear = (tahunVal !== undefined && tahunVal !== null && String(tahunVal).trim() !== "" && !isNaN(parseInt(tahunVal))) ? parseInt(tahunVal, 10) : null;
 
             validRecords.push({
                 tanggal: dateStr,

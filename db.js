@@ -77,8 +77,8 @@ export class GoldDatabase {
                         p.gramasi = 1;
                         changed = true;
                     }
-                    if (p.tahun === undefined || p.tahun === null) {
-                        p.tahun = p.tanggal ? new Date(p.tanggal).getFullYear() : 2024;
+                    if (p.tahun === undefined) {
+                        p.tahun = null;
                         changed = true;
                     }
                 });
@@ -338,13 +338,20 @@ export class GoldDatabase {
 
     async addPembelian(item) {
         const client = this.getSupabase();
+        const payload = {
+            ...item,
+            tahun: (item.tahun !== undefined && item.tahun !== null && item.tahun !== "" && item.tahun !== "-") ? parseInt(item.tahun, 10) : null
+        };
+
         if (client) {
             try {
-                const { data, error } = await client.from("pembelian").insert([item]).select();
+                const { data, error } = await client.from("pembelian").insert([payload]).select();
                 if (!error) return { success: true, data: data[0] };
                 let msg = error.message;
-                if (msg.includes("gramasi") || msg.includes("tahun") || msg.includes("schema cache")) {
-                    msg = `Kolom database Supabase belum di-update: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER NOT NULL DEFAULT 2024;`;
+                if (msg.includes("not-null") || msg.includes("null value in column") || msg.includes("tahun")) {
+                    msg = `Kolom tahun di Supabase masih memiliki batasan NOT NULL: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;`;
+                } else if (msg.includes("gramasi") || msg.includes("schema cache")) {
+                    msg = `Kolom database Supabase belum di-update: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER DEFAULT NULL;\nALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;`;
                 }
                 return { success: false, message: msg };
             } catch (e) {
@@ -358,7 +365,7 @@ export class GoldDatabase {
         if (local.some(p => p.no_seri.trim().toLowerCase() === item.no_seri.trim().toLowerCase())) {
             return { success: false, message: `No Seri ${item.no_seri} sudah terdaftar!` };
         }
-        const newItem = { id: "p_" + Date.now(), ...item };
+        const newItem = { id: "p_" + Date.now(), ...payload };
         local.push(newItem);
         localStorage.setItem("rumaisho_pembelian", JSON.stringify(local));
         return { success: true, data: newItem };
@@ -393,10 +400,14 @@ export class GoldDatabase {
         const client = this.getSupabase();
         const oldSeri = oldNoSeri || updatedFields.no_seri;
         const newSeri = updatedFields.no_seri;
+        const fields = { ...updatedFields };
+        if ("tahun" in fields) {
+            fields.tahun = (fields.tahun !== undefined && fields.tahun !== null && fields.tahun !== "" && fields.tahun !== "-") ? parseInt(fields.tahun, 10) : null;
+        }
 
         if (client) {
             try {
-                let query = client.from("pembelian").update(updatedFields);
+                let query = client.from("pembelian").update(fields);
                 if (id && !id.startsWith("p_") && id.length > 20) {
                     query = query.eq("id", id);
                 } else {
@@ -420,7 +431,7 @@ export class GoldDatabase {
         let local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
         local = local.map(p => {
             if ((id && p.id === id) || (oldSeri && p.no_seri === oldSeri)) {
-                return { ...p, ...updatedFields };
+                return { ...p, ...fields };
             }
             return p;
         });
@@ -654,10 +665,14 @@ export class GoldDatabase {
         const client = this.getSupabase();
         const oldSeri = oldNoSeri || updatedFields.no_seri;
         const newSeri = updatedFields.no_seri;
+        const fields = { ...updatedFields };
+        if ("tahun" in fields) {
+            fields.tahun = (fields.tahun !== undefined && fields.tahun !== null && fields.tahun !== "" && fields.tahun !== "-") ? parseInt(fields.tahun, 10) : null;
+        }
 
         if (client) {
             try {
-                let query = client.from("stok_manual").update(updatedFields);
+                let query = client.from("stok_manual").update(fields);
                 if (id && !id.startsWith("sm_") && id.length > 20) {
                     query = query.eq("id", id);
                 } else {
@@ -680,7 +695,7 @@ export class GoldDatabase {
         let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
         local = local.map(s => {
             if ((id && s.id === id) || (oldSeri && s.no_seri === oldSeri)) {
-                return { ...s, ...updatedFields };
+                return { ...s, ...fields };
             }
             return s;
         });
@@ -725,9 +740,9 @@ export class GoldDatabase {
         purchases.forEach(p => {
             const seri = (p.no_seri || "").trim().toUpperCase();
             const sale = salesMap.get(seri);
-            const yearVal = (p.tahun !== undefined && p.tahun !== null && p.tahun !== "") 
+            const yearVal = (p.tahun !== undefined && p.tahun !== null && p.tahun !== "" && p.tahun !== "-") 
                 ? p.tahun 
-                : (p.tanggal ? new Date(p.tanggal).getFullYear() : "-");
+                : "-";
             unifiedList.push({
                 id: p.id,
                 tipe_sumber: "pembelian",
