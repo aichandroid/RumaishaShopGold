@@ -4,6 +4,23 @@
 // Default PIN
 const DEFAULT_PIN = "1234";
 
+// UUID Generation & Validation Helper
+function generateUUID() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === "x" ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function isUUID(str) {
+    if (!str || typeof str !== "string") return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 // Initial Mock Data
 const MOCK_GOLD_PRICES = [
     { tanggal: "2026-07-20", gram: 1, harga: 1450000, jenis_logam: "Antam" },
@@ -202,15 +219,24 @@ export class GoldDatabase {
 
             // Sync Pembelian
             if (localPembelian.length > 0) {
-                // Strip local mock IDs that aren't UUIDs or leave UUIDs if they exist
-                const cleanPembelian = localPembelian.map(p => {
-                    const obj = { ...p };
-                    if (obj.id && obj.id.startsWith("p")) delete obj.id; // Let supabase generate uuid
-                    return obj;
-                });
-                // In a real sync we should match duplicates, but here we can clean and upsert based on no_seri
-                for (const p of cleanPembelian) {
-                    await client.from("pembelian").upsert(p, { onConflict: "no_seri" });
+                let updatedLocal = false;
+                for (const p of localPembelian) {
+                    if (!p.id || !isUUID(p.id)) {
+                        p.id = generateUUID();
+                        updatedLocal = true;
+                    }
+                    const { data: existing } = await client.from("pembelian").select("id").eq("id", p.id);
+                    if (!existing || existing.length === 0) {
+                        const { data: duplicate } = await client.from("pembelian").select("id").eq("tanggal", p.tanggal).eq("no_seri", p.no_seri).eq("harga_beli", p.harga_beli);
+                        if (!duplicate || duplicate.length === 0) {
+                            await client.from("pembelian").insert(p);
+                        }
+                    } else {
+                        await client.from("pembelian").update(p).eq("id", p.id);
+                    }
+                }
+                if (updatedLocal) {
+                    localStorage.setItem("rumaisho_pembelian", JSON.stringify(localPembelian));
                 }
             }
 
@@ -218,7 +244,7 @@ export class GoldDatabase {
             if (localPenjualan.length > 0) {
                 const cleanPenjualan = localPenjualan.map(s => {
                     const obj = { ...s };
-                    if (obj.id && obj.id.startsWith("s")) delete obj.id;
+                    if (obj.id && !isUUID(obj.id)) delete obj.id;
                     return obj;
                 });
                 for (const s of cleanPenjualan) {
@@ -243,13 +269,24 @@ export class GoldDatabase {
             // Sync Stok Manual
             const localStokManual = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
             if (localStokManual.length > 0) {
-                const cleanStokManual = localStokManual.map(sm => {
-                    const obj = { ...sm };
-                    if (obj.id && obj.id.startsWith("sm")) delete obj.id;
-                    return obj;
-                });
-                for (const sm of cleanStokManual) {
-                    await client.from("stok_manual").upsert(sm, { onConflict: "no_seri" });
+                let updatedLocalSm = false;
+                for (const sm of localStokManual) {
+                    if (!sm.id || !isUUID(sm.id)) {
+                        sm.id = generateUUID();
+                        updatedLocalSm = true;
+                    }
+                    const { data: existing } = await client.from("stok_manual").select("id").eq("id", sm.id);
+                    if (!existing || existing.length === 0) {
+                        const { data: duplicate } = await client.from("stok_manual").select("id").eq("tanggal_input", sm.tanggal_input).eq("no_seri", sm.no_seri);
+                        if (!duplicate || duplicate.length === 0) {
+                            await client.from("stok_manual").insert(sm);
+                        }
+                    } else {
+                        await client.from("stok_manual").update(sm).eq("id", sm.id);
+                    }
+                }
+                if (updatedLocalSm) {
+                    localStorage.setItem("rumaisho_stok_manual", JSON.stringify(localStokManual));
                 }
             }
 
@@ -336,7 +373,7 @@ export class GoldDatabase {
         return JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]").sort((a,b) => b.tanggal.localeCompare(a.tanggal));
     }
 
-    async addPembelian(item) {
+    async addPembelian(item, allowDuplicateActive = false) {
         const client = this.getSupabase();
         const payload = {
             ...item,
@@ -348,10 +385,12 @@ export class GoldDatabase {
                 const { data, error } = await client.from("pembelian").insert([payload]).select();
                 if (!error) return { success: true, data: data[0] };
                 let msg = error.message;
-                if (msg.includes("not-null") || msg.includes("null value in column") || msg.includes("tahun")) {
+                if (msg.includes("unique constraint") || msg.includes("duplicate key") || msg.includes("pembelian_no_seri_key")) {
+                    msg = `Supabase masih memiliki batasan UNIQUE pada no_seri: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian DROP CONSTRAINT IF EXISTS pembelian_no_seri_key;`;
+                } else if (msg.includes("not-null") || msg.includes("null value in column") || msg.includes("tahun")) {
                     msg = `Kolom tahun di Supabase masih memiliki batasan NOT NULL: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;`;
                 } else if (msg.includes("gramasi") || msg.includes("schema cache")) {
-                    msg = `Kolom database Supabase belum di-update: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER DEFAULT NULL;\nALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;`;
+                    msg = `Kolom database Supabase belum di-update: ${error.message}.\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;\nALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER DEFAULT NULL;\nALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;\nALTER TABLE pembelian DROP CONSTRAINT IF EXISTS pembelian_no_seri_key;`;
                 }
                 return { success: false, message: msg };
             } catch (e) {
@@ -361,11 +400,19 @@ export class GoldDatabase {
 
         // Local Storage
         const local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
-        // Check for unique serial number
-        if (local.some(p => p.no_seri.trim().toLowerCase() === item.no_seri.trim().toLowerCase())) {
-            return { success: false, message: `No Seri ${item.no_seri} sudah terdaftar!` };
+        // Check if an unsold unit with this serial number is currently active in stock
+        const activeStock = await this.getStokAktif();
+        const seriUpper = item.no_seri.trim().toUpperCase();
+        const isCurrentlyInStock = activeStock.some(s => (s.no_seri || "").trim().toUpperCase() === seriUpper);
+        if (isCurrentlyInStock && !allowDuplicateActive) {
+            return {
+                success: false,
+                is_active_duplicate: true,
+                message: `No Seri ${item.no_seri} saat ini masih ada di stok (status Tersedia/Belum Terjual). No seri yang sama dapat diinput kembali jika stok sebelumnya sudah terjual.`
+            };
         }
-        const newItem = { id: "p_" + Date.now(), ...payload };
+
+        const newItem = { id: generateUUID(), ...payload };
         local.push(newItem);
         localStorage.setItem("rumaisho_pembelian", JSON.stringify(local));
         return { success: true, data: newItem };
@@ -376,7 +423,7 @@ export class GoldDatabase {
         if (client) {
             try {
                 let query = client.from("pembelian").delete();
-                if (id && !id.startsWith("p_") && id.length > 20) {
+                if (id) {
                     query = query.eq("id", id);
                 } else {
                     query = query.eq("no_seri", no_seri);
@@ -389,9 +436,9 @@ export class GoldDatabase {
             }
         }
 
-        // Local Storage
+        // Local Storage - delete only the specific record by id
         let local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
-        local = local.filter(p => !((id && p.id === id) || (no_seri && p.no_seri === no_seri)));
+        local = local.filter(p => id ? p.id !== id : p.no_seri !== no_seri);
         localStorage.setItem("rumaisho_pembelian", JSON.stringify(local));
         return { success: true };
     }
@@ -408,14 +455,13 @@ export class GoldDatabase {
         if (client) {
             try {
                 let query = client.from("pembelian").update(fields);
-                if (id && !id.startsWith("p_") && id.length > 20) {
+                if (id) {
                     query = query.eq("id", id);
                 } else {
                     query = query.eq("no_seri", oldSeri);
                 }
                 const { data, error } = await query.select();
                 if (!error) {
-                    // Cascade serial change to sales if serial was updated
                     if (oldSeri && newSeri && oldSeri !== newSeri) {
                         await client.from("penjualan").update({ no_seri: newSeri }).eq("no_seri", oldSeri);
                     }
@@ -427,10 +473,10 @@ export class GoldDatabase {
             }
         }
 
-        // Local Storage
+        // Local Storage - update only the specific record by id
         let local = JSON.parse(localStorage.getItem("rumaisho_pembelian") || "[]");
         local = local.map(p => {
-            if ((id && p.id === id) || (oldSeri && p.no_seri === oldSeri)) {
+            if (id ? p.id === id : p.no_seri === oldSeri) {
                 return { ...p, ...fields };
             }
             return p;
@@ -612,17 +658,21 @@ export class GoldDatabase {
         const client = this.getSupabase();
         const seriClean = item.no_seri.trim().toUpperCase();
 
-        // Check uniqueness across pembelian & manual stock
-        const allStock = await this.getStokEmas();
-        if (allStock.some(s => s.no_seri.trim().toUpperCase() === seriClean)) {
-            return { success: false, message: `No Seri ${item.no_seri} sudah terdaftar di sistem!` };
+        // Check if an unsold unit with this serial number is currently active in stock
+        const activeStock = await this.getStokAktif();
+        if (activeStock.some(s => (s.no_seri || "").trim().toUpperCase() === seriClean)) {
+            return { success: false, message: `No Seri ${item.no_seri} saat ini masih ada di stok (status Tersedia)! No seri yang sama dapat diinput kembali jika stok sebelumnya sudah terjual.` };
         }
 
         if (client) {
             try {
                 const { data, error } = await client.from("stok_manual").insert([item]).select();
                 if (!error) return { success: true, data: data[0] };
-                return { success: false, message: error.message };
+                let msg = error.message;
+                if (msg.includes("unique constraint") || msg.includes("duplicate key") || msg.includes("stok_manual_no_seri_key")) {
+                    msg = `Supabase masih memiliki batasan UNIQUE pada no_seri di tabel stok_manual (${error.message}).\n\nSolusi: Buka SQL Editor di Supabase Anda dan jalankan:\nALTER TABLE stok_manual DROP CONSTRAINT IF EXISTS stok_manual_no_seri_key;`;
+                }
+                return { success: false, message: msg };
             } catch (e) {
                 return { success: false, message: e.message };
             }
@@ -630,7 +680,7 @@ export class GoldDatabase {
 
         // Local Storage
         const local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
-        const newItem = { id: "sm_" + Date.now(), ...item };
+        const newItem = { id: generateUUID(), ...item };
         local.push(newItem);
         localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
         return { success: true, data: newItem };
@@ -641,7 +691,7 @@ export class GoldDatabase {
         if (client) {
             try {
                 let query = client.from("stok_manual").delete();
-                if (id && !id.startsWith("sm_") && id.length > 20) {
+                if (id) {
                     query = query.eq("id", id);
                 } else {
                     query = query.eq("no_seri", no_seri);
@@ -654,9 +704,9 @@ export class GoldDatabase {
             }
         }
 
-        // Local Storage
+        // Local Storage - only delete specific record by id
         let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
-        local = local.filter(s => !((id && s.id === id) || (no_seri && s.no_seri === no_seri)));
+        local = local.filter(s => id ? s.id !== id : s.no_seri !== no_seri);
         localStorage.setItem("rumaisho_stok_manual", JSON.stringify(local));
         return { success: true };
     }
@@ -673,7 +723,7 @@ export class GoldDatabase {
         if (client) {
             try {
                 let query = client.from("stok_manual").update(fields);
-                if (id && !id.startsWith("sm_") && id.length > 20) {
+                if (id) {
                     query = query.eq("id", id);
                 } else {
                     query = query.eq("no_seri", oldSeri);
@@ -691,10 +741,10 @@ export class GoldDatabase {
             }
         }
 
-        // Local Storage
+        // Local Storage - update only specific record by id
         let local = JSON.parse(localStorage.getItem("rumaisho_stok_manual") || "[]");
         local = local.map(s => {
-            if ((id && s.id === id) || (oldSeri && s.no_seri === oldSeri)) {
+            if (id ? s.id === id : s.no_seri === oldSeri) {
                 return { ...s, ...fields };
             }
             return s;
@@ -720,30 +770,20 @@ export class GoldDatabase {
         return { success: true };
     }
 
-    // Comprehensive Aggregated Gold Stock (Purchases + Manual Stock - Sales)
+    // Comprehensive Aggregated Gold Stock (Purchases + Manual Stock - Sales with FIFO Pairing)
     async getStokEmas() {
         const purchases = await this.getPembelian();
         const manualStocks = await this.getStokManual();
         const sales = await this.getPenjualan();
 
-        // Map sales by no_seri for fast O(1) status check
-        const salesMap = new Map();
-        sales.forEach(s => {
-            if (s.no_seri) {
-                salesMap.set(s.no_seri.trim().toUpperCase(), s);
-            }
-        });
+        // 1. Gather all stock items
+        const rawStock = [];
 
-        const unifiedList = [];
-
-        // 1. Stock items from purchases
         purchases.forEach(p => {
-            const seri = (p.no_seri || "").trim().toUpperCase();
-            const sale = salesMap.get(seri);
             const yearVal = (p.tahun !== undefined && p.tahun !== null && p.tahun !== "" && p.tahun !== "-") 
                 ? p.tahun 
                 : "-";
-            unifiedList.push({
+            rawStock.push({
                 id: p.id,
                 tipe_sumber: "pembelian",
                 sumber_label: "Pembelian",
@@ -753,34 +793,109 @@ export class GoldDatabase {
                 gramasi: parseFloat(p.gramasi) || 0,
                 harga_modal: parseFloat(p.harga_beli) || 0,
                 keterangan_asal: p.nama_penjual || "-",
-                is_sold: !!sale,
-                status: sale ? "Terjual" : "Tersedia",
-                sale_info: sale || null
+                created_at: p.created_at || p.tanggal,
+                is_sold: false,
+                status: "Tersedia",
+                sale_info: null
             });
         });
 
-        // 2. Stock items from manual entry
         manualStocks.forEach(sm => {
-            const seri = (sm.no_seri || "").trim().toUpperCase();
-            const sale = salesMap.get(seri);
-            unifiedList.push({
+            const yearVal = (sm.tahun !== undefined && sm.tahun !== null && sm.tahun !== "" && sm.tahun !== "-")
+                ? sm.tahun
+                : "-";
+            rawStock.push({
                 id: sm.id,
                 tipe_sumber: "manual",
                 sumber_label: "Manual",
                 tanggal_masuk: sm.tanggal_input || "-",
                 no_seri: sm.no_seri,
-                tahun: sm.tahun || "-",
+                tahun: yearVal,
                 gramasi: parseFloat(sm.gramasi) || 0,
                 harga_modal: parseFloat(sm.harga_modal) || 0,
                 keterangan_asal: "Input Manual",
-                is_sold: !!sale,
-                status: sale ? "Terjual" : "Tersedia",
-                sale_info: sale || null
+                created_at: sm.created_at || sm.tanggal_input,
+                is_sold: false,
+                status: "Tersedia",
+                sale_info: null
             });
         });
 
-        // Sort by tanggal_masuk descending
-        return unifiedList.sort((a, b) => String(b.tanggal_masuk).localeCompare(String(a.tanggal_masuk)));
+        // 2. Group stock items by normalized serial number
+        // Sort chronologically ascending (oldest first: FIFO)
+        const stockBySerial = new Map();
+        rawStock.forEach(item => {
+            const seri = (item.no_seri || "").trim().toUpperCase();
+            if (!stockBySerial.has(seri)) {
+                stockBySerial.set(seri, []);
+            }
+            stockBySerial.get(seri).push(item);
+        });
+
+        for (const [seri, list] of stockBySerial.entries()) {
+            list.sort((a, b) => {
+                const dateCompare = String(a.tanggal_masuk || "").localeCompare(String(b.tanggal_masuk || ""));
+                if (dateCompare !== 0) return dateCompare;
+                return String(a.created_at || a.id || "").localeCompare(String(b.created_at || b.id || ""));
+            });
+        }
+
+        // 3. Group sales by normalized serial number
+        // Sort chronologically ascending (oldest first)
+        const salesBySerial = new Map();
+        sales.forEach(s => {
+            const seri = (s.no_seri || "").trim().toUpperCase();
+            if (!salesBySerial.has(seri)) {
+                salesBySerial.set(seri, []);
+            }
+            salesBySerial.get(seri).push({ ...s });
+        });
+
+        for (const [seri, list] of salesBySerial.entries()) {
+            list.sort((a, b) => {
+                const dateCompare = String(a.tanggal || "").localeCompare(String(b.tanggal || ""));
+                if (dateCompare !== 0) return dateCompare;
+                return String(a.created_at || a.id || "").localeCompare(String(b.created_at || b.id || ""));
+            });
+        }
+
+        // 4. FIFO Pairing: For each serial number, pair oldest sales to oldest stock items
+        for (const [seri, stockList] of stockBySerial.entries()) {
+            const salesList = salesBySerial.get(seri) || [];
+            
+            // Priority 1: Direct link if sale has explicit stok_id
+            salesList.forEach(sale => {
+                if (sale.stok_id) {
+                    const matchedStock = stockList.find(st => st.id === sale.stok_id && !st.is_sold);
+                    if (matchedStock) {
+                        matchedStock.is_sold = true;
+                        matchedStock.status = "Terjual";
+                        matchedStock.sale_info = sale;
+                        sale._matched = true;
+                    }
+                }
+            });
+
+            // Priority 2: FIFO matching for remaining sales
+            let stockIndex = 0;
+            salesList.forEach(sale => {
+                if (sale._matched) return;
+                while (stockIndex < stockList.length && stockList[stockIndex].is_sold) {
+                    stockIndex++;
+                }
+                if (stockIndex < stockList.length) {
+                    const matchedStock = stockList[stockIndex];
+                    matchedStock.is_sold = true;
+                    matchedStock.status = "Terjual";
+                    matchedStock.sale_info = sale;
+                    sale._matched = true;
+                    stockIndex++;
+                }
+            });
+        }
+
+        // Sort by tanggal_masuk descending for display
+        return rawStock.sort((a, b) => String(b.tanggal_masuk).localeCompare(String(a.tanggal_masuk)));
     }
 
     // Active stock only (unsold)

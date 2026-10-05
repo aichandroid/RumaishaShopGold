@@ -323,7 +323,7 @@ function setupFormEventListeners() {
         openModal("modal-add-beli");
     });
 
-    document.getElementById("btn-submit-beli").addEventListener("click", (e) => {
+    document.getElementById("btn-submit-beli").addEventListener("click", async (e) => {
         e.preventDefault();
         const form = document.getElementById("form-add-beli");
         if (!form.checkValidity()) {
@@ -339,6 +339,22 @@ function setupFormEventListeners() {
         const harga = parseRibuan(document.getElementById("beli-harga").value);
         const penjual = document.getElementById("beli-penjual").value.trim();
 
+        // Check stock status for this serial number
+        const allStock = await db.getStokEmas();
+        const activeUnsold = allStock.find(s => (s.no_seri || "").trim().toUpperCase() === noSeri && !s.is_sold);
+        const previouslySold = allStock.filter(s => (s.no_seri || "").trim().toUpperCase() === noSeri && s.is_sold);
+
+        let noteHtml = "";
+        if (activeUnsold) {
+            noteHtml = `<div style="margin-top:0.75rem; padding:0.5rem 0.75rem; background-color:rgba(239, 68, 68, 0.15); border:1px solid var(--danger); border-radius:6px; color:#fca5a5; font-size:0.85rem;">
+                ⚠️ <strong>Peringatan:</strong> No Seri ini saat ini masih tercatat aktif di stok (status Tersedia). Apakah Anda yakin ingin tetap menambahkannya sebagai unit baru?
+            </div>`;
+        } else if (previouslySold.length > 0) {
+            noteHtml = `<div style="margin-top:0.75rem; padding:0.5rem 0.75rem; background-color:rgba(16, 185, 129, 0.15); border:1px solid var(--success); border-radius:6px; color:#6ee7b7; font-size:0.85rem;">
+                ℹ️ <strong>Beli Kembali (Buyback):</strong> Emas dengan No Seri ini sebelumnya sudah pernah terjual (${previouslySold.length}x). Data pembelian baru ini akan dicatat sebagai unit stok aktif baru tanpa menimpa riwayat lama.
+            </div>`;
+        }
+
         // 1. Show confirmation dialog
         const summary = `
             <strong>Modul:</strong> Pembelian Emas<br>
@@ -348,6 +364,7 @@ function setupFormEventListeners() {
             <strong>Gramasi:</strong> ${gramasi} gram<br>
             <strong>Harga Beli:</strong> ${formatRupiah(harga)}<br>
             <strong>Nama Penjual:</strong> ${penjual}
+            ${noteHtml}
         `;
         showConfirmSubmitModal(summary, () => {
             // 2. Request PIN auth
@@ -359,10 +376,12 @@ function setupFormEventListeners() {
                     gramasi: gramasi,
                     harga_beli: harga,
                     nama_penjual: penjual
-                });
+                }, !!activeUnsold);
                 if (res.success) {
                     closeModal("modal-add-beli");
                     await renderPembelianTable();
+                    await renderStokEmasTable();
+                    await loadDashboardData();
                     alert("Data pembelian berhasil ditambahkan!");
                 } else {
                     alert("Gagal menambahkan data: " + res.message);
@@ -444,9 +463,9 @@ function setupFormEventListeners() {
 
         if (oldSeri !== noSeri) {
             const allStock = await db.getStokEmas();
-            const exists = allStock.some(s => (s.no_seri || "").trim().toUpperCase() === noSeri && s.id !== id);
+            const exists = allStock.some(s => (s.no_seri || "").trim().toUpperCase() === noSeri && s.id !== id && !s.is_sold);
             if (exists) {
-                alert(`No Seri "${noSeri}" sudah terdaftar pada stok lain! Silakan gunakan nomor seri yang berbeda.`);
+                alert(`No Seri "${noSeri}" saat ini masih aktif pada stok lain yang belum terjual! Silakan gunakan nomor seri yang berbeda.`);
                 return;
             }
         }
@@ -2087,17 +2106,19 @@ function processImportData(data, type, fileInput) {
 
             if (type === "pembelian") {
                 const currentPurchases = await db.getPembelian();
-                const currentSerials = new Set(currentPurchases.map(p => p.no_seri));
+                // Prevent importing exact duplicate records (same serial, date, and price)
+                const existingSignatures = new Set(currentPurchases.map(p => `${(p.no_seri || "").trim().toUpperCase()}_${p.tanggal}_${p.harga_beli}`));
 
                 for (const item of validRecords) {
-                    if (currentSerials.has(item.no_seri)) {
+                    const sig = `${(item.no_seri || "").trim().toUpperCase()}_${item.tanggal}_${item.harga_beli}`;
+                    if (existingSignatures.has(sig)) {
                         skipCount++;
                         continue;
                     }
-                    const res = await db.addPembelian(item);
+                    const res = await db.addPembelian(item, true);
                     if (res.success) {
                         successCount++;
-                        currentSerials.add(item.no_seri);
+                        existingSignatures.add(sig);
                     } else {
                         errors.push(`${item.no_seri}: ${res.message}`);
                     }
@@ -2115,7 +2136,7 @@ function processImportData(data, type, fileInput) {
 
             fileInput.value = "";
 
-            let report = `Impor selesai!\n- Berhasil: ${successCount} data\n- Dilewati (Duplikat Seri): ${skipCount} data`;
+            let report = `Impor selesai!\n- Berhasil: ${successCount} data\n- Dilewati (Duplikat Identik): ${skipCount} data`;
             if (errors.length > 0) {
                 report += `\n- Gagal: ${errors.length} data (Detail di konsol)`;
                 console.error("Import errors detail:", errors);

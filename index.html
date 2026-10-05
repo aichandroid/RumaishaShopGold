@@ -442,7 +442,7 @@
 CREATE TABLE pembelian (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal DATE NOT NULL,
-    no_seri TEXT NOT NULL UNIQUE,
+    no_seri TEXT NOT NULL,
     tahun INTEGER DEFAULT NULL,
     gramasi NUMERIC NOT NULL DEFAULT 1,
     harga_beli NUMERIC NOT NULL,
@@ -453,7 +453,7 @@ CREATE TABLE pembelian (
 CREATE TABLE stok_manual (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal_input DATE NOT NULL,
-    no_seri TEXT NOT NULL UNIQUE,
+    no_seri TEXT NOT NULL,
     gramasi NUMERIC NOT NULL,
     tahun INTEGER NOT NULL,
     harga_modal NUMERIC DEFAULT 0,
@@ -494,15 +494,17 @@ INSERT INTO settings (key, value) VALUES ('pin', '1234') ON CONFLICT (key) DO NO
 ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS gramasi NUMERIC NOT NULL DEFAULT 1;
 ALTER TABLE pembelian ADD COLUMN IF NOT EXISTS tahun INTEGER;
 ALTER TABLE pembelian ALTER COLUMN tahun DROP NOT NULL;
+ALTER TABLE pembelian DROP CONSTRAINT IF EXISTS pembelian_no_seri_key;
 CREATE TABLE IF NOT EXISTS stok_manual (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tanggal_input DATE NOT NULL,
-    no_seri TEXT NOT NULL UNIQUE,
+    no_seri TEXT NOT NULL,
     gramasi NUMERIC NOT NULL,
     tahun INTEGER NOT NULL,
     harga_modal NUMERIC DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+ALTER TABLE stok_manual DROP CONSTRAINT IF EXISTS stok_manual_no_seri_key;
 ALTER TABLE pembelian DISABLE ROW LEVEL SECURITY;
 ALTER TABLE stok_manual DISABLE ROW LEVEL SECURITY;
 
