@@ -1,0 +1,34 @@
+# Environment & secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+.env*.local
+
+# Database backups
+backup.sql
+*.sql
+!supabase_schema.sql
+backups/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# IDE & OS files
+.DS_Store
+*.log
+npm-debug.log*
+
+# Sensitive server scripts
+server.ps1
+
+# Database backup files
+db.js.backup
+
+# Archive
+*.zip
