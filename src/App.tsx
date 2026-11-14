@@ -33,7 +33,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, formatDate, cn, formatNumber, parseNumber } from './lib/utils';
 import { Purchase, Sale, GoldPrice, AppMode } from './types';
 import { toPng } from 'html-to-image';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import { NumericFormat } from 'react-number-format';
 import 'jspdf-autotable';
@@ -133,97 +133,151 @@ export default function App() {
     setIsPinDialogOpen(false);
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     const dateStr = new Date().toISOString().split('T')[0];
-    const wb = XLSX.utils.book_new();
-    
-    const purchaseData = purchases.map(p => ({
-      Tanggal: p.date,
-      'No Seri': p.serialNumber,
-      'Harga Beli': p.price,
-      Penjual: p.sellerName
-    }));
-    
-    const salesData = sales.map(s => ({
-      Tanggal: s.date,
-      'Gramasi': s.weight,
-      'No Seri': s.serialNumber,
-      Pembeli: s.buyerName,
-      'Harga Jual': s.sellingPrice,
-      'Harga Restok': s.restockPrice,
-      Keuntungan: s.profit
-    }));
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Rumaisho Gold';
+    wb.created = new Date();
 
-    const wsP = XLSX.utils.json_to_sheet(purchaseData);
-    const wsS = XLSX.utils.json_to_sheet(salesData);
-    
-    XLSX.utils.book_append_sheet(wb, wsP, "Pembelian");
-    XLSX.utils.book_append_sheet(wb, wsS, "Penjualan");
-    
-    XLSX.writeFile(wb, `Rekap_Emas_${dateStr}.xlsx`);
+    const wsP = wb.addWorksheet('Pembelian');
+    wsP.columns = [
+      { header: 'Tanggal', key: 'Tanggal', width: 15 },
+      { header: 'No Seri', key: 'No Seri', width: 20 },
+      { header: 'Tahun', key: 'Tahun', width: 10 },
+      { header: 'Gramasi', key: 'Gramasi', width: 12 },
+      { header: 'Harga Beli', key: 'Harga Beli', width: 18 },
+      { header: 'Penjual', key: 'Penjual', width: 25 },
+    ];
+    purchases.forEach(p => {
+      wsP.addRow({
+        Tanggal: p.date,
+        'No Seri': p.serialNumber,
+        Tahun: p.year || '-',
+        Gramasi: p.weight || 0,
+        'Harga Beli': p.price,
+        Penjual: p.sellerName
+      });
+    });
+
+    const wsS = wb.addWorksheet('Penjualan');
+    wsS.columns = [
+      { header: 'Tanggal', key: 'Tanggal', width: 15 },
+      { header: 'Gramasi', key: 'Gramasi', width: 12 },
+      { header: 'No Seri', key: 'No Seri', width: 20 },
+      { header: 'Pembeli', key: 'Pembeli', width: 25 },
+      { header: 'Harga Jual', key: 'Harga Jual', width: 18 },
+      { header: 'Harga Restok', key: 'Harga Restok', width: 18 },
+      { header: 'Keuntungan', key: 'Keuntungan', width: 18 },
+    ];
+    sales.forEach(s => {
+      wsS.addRow({
+        Tanggal: s.date,
+        Gramasi: s.weight,
+        'No Seri': s.serialNumber,
+        Pembeli: s.buyerName,
+        'Harga Jual': s.sellingPrice,
+        'Harga Restok': s.restockPrice,
+        Keuntungan: s.profit
+      });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Rekap_Emas_${dateStr}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   };
 
-  const handleRestoreExcel = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleRestoreExcel = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
 
-        const newPurchases: Purchase[] = [];
-        const newSales: Sale[] = [];
+      const newPurchases: Purchase[] = [];
+      const newSales: Sale[] = [];
 
-        // Restore Purchases
-        if (workbook.SheetNames.includes("Pembelian")) {
-          const wsP = workbook.Sheets["Pembelian"];
-          const rawP = XLSX.utils.sheet_to_json(wsP) as any[];
-          rawP.forEach(row => {
-            newPurchases.push({
-              id: Math.random().toString(36).substr(2, 9),
-              date: row.Tanggal || new Date().toISOString().split('T')[0],
-              serialNumber: String(row['No Seri'] || ''),
-              price: Number(row['Harga Beli'] || 0),
-              sellerName: String(row.Penjual || '')
+      // Restore Purchases
+      const wsP = workbook.getWorksheet('Pembelian');
+      if (wsP) {
+        const headers: Record<number, string> = {};
+        wsP.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) {
+            row.eachCell((cell, colNumber) => {
+              headers[colNumber] = String(cell.value || '');
             });
-          });
-        }
-
-        // Restore Sales
-        if (workbook.SheetNames.includes("Penjualan")) {
-          const wsS = workbook.Sheets["Penjualan"];
-          const rawS = XLSX.utils.sheet_to_json(wsS) as any[];
-          rawS.forEach(row => {
-            newSales.push({
-              id: Math.random().toString(36).substr(2, 9),
-              date: row.Tanggal || new Date().toISOString().split('T')[0],
-              weight: Number(row['Gramasi'] || 0),
-              serialNumber: String(row['No Seri'] || ''),
-              buyerName: String(row.Pembeli || ''),
-              sellingPrice: Number(row['Harga Jual'] || 0),
-              restockPrice: Number(row['Harga Restok'] || 0),
-              profit: Number(row.Keuntungan || 0)
+          } else {
+            const rowData: Record<string, any> = {};
+            row.eachCell((cell, colNumber) => {
+              const h = headers[colNumber];
+              if (h) rowData[h] = cell.value;
             });
-          });
-        }
-
-        if (newPurchases.length > 0 || newSales.length > 0) {
-          setPurchases(prev => [...prev, ...newPurchases]);
-          setSales(prev => [...prev, ...newSales]);
-          alert(`Berhasil memulihkan ${newPurchases.length} data pembelian dan ${newSales.length} data penjualan!`);
-        } else {
-          alert('Format file tidak dikenali atau data kosong.');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Gagal membaca file excel. Pastikan format sesuai.');
+            if (rowData.Tanggal || rowData['No Seri']) {
+              newPurchases.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: String(rowData.Tanggal || new Date().toISOString().split('T')[0]),
+                serialNumber: String(rowData['No Seri'] || ''),
+                year: Number(rowData.Tahun || 2024),
+                weight: Number(rowData.Gramasi || 1),
+                price: Number(rowData['Harga Beli'] || 0),
+                sellerName: String(rowData.Penjual || '')
+              });
+            }
+          }
+        });
       }
-    };
-    reader.readAsBinaryString(file);
-    // Reset input
-    if (e.target) e.target.value = '';
+
+      // Restore Sales
+      const wsS = workbook.getWorksheet('Penjualan');
+      if (wsS) {
+        const headers: Record<number, string> = {};
+        wsS.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) {
+            row.eachCell((cell, colNumber) => {
+              headers[colNumber] = String(cell.value || '');
+            });
+          } else {
+            const rowData: Record<string, any> = {};
+            row.eachCell((cell, colNumber) => {
+              const h = headers[colNumber];
+              if (h) rowData[h] = cell.value;
+            });
+            if (rowData.Tanggal || rowData['No Seri']) {
+              newSales.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: String(rowData.Tanggal || new Date().toISOString().split('T')[0]),
+                weight: Number(rowData['Gramasi'] || 0),
+                serialNumber: String(rowData['No Seri'] || ''),
+                buyerName: String(rowData.Pembeli || ''),
+                sellingPrice: Number(rowData['Harga Jual'] || 0),
+                restockPrice: Number(rowData['Harga Restok'] || 0),
+                profit: Number(rowData.Keuntungan || 0)
+              });
+            }
+          }
+        });
+      }
+
+      if (newPurchases.length > 0 || newSales.length > 0) {
+        setPurchases(prev => [...prev, ...newPurchases]);
+        setSales(prev => [...prev, ...newSales]);
+        alert(`Berhasil memulihkan ${newPurchases.length} data pembelian dan ${newSales.length} data penjualan!`);
+      } else {
+        alert('Format file tidak dikenali atau data kosong.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal membaca file excel. Pastikan format sesuai.');
+    } finally {
+      if (e.target) e.target.value = '';
+    }
   };
 
   const exportToPDF = () => {

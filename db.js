@@ -2,7 +2,7 @@
 // Supports transparent routing between LocalStorage and Supabase
 
 // Default PIN
-const DEFAULT_PIN = "1234";
+const DEFAULT_PIN = "310814";
 
 // UUID Generation & Validation Helper
 function generateUUID() {
@@ -59,6 +59,7 @@ export class GoldDatabase {
         this.supabaseClient = null;
         this.supabaseUrl = "";
         this.supabaseKey = "";
+        this.isSelfHosted = false;
         this.initLocalData();
     }
 
@@ -68,6 +69,10 @@ export class GoldDatabase {
             const res = await fetch("/api/config");
             if (res.ok) {
                 const data = await res.json();
+                if (data.mode === "self-hosted") {
+                    this.isSelfHosted = true;
+                    return;
+                }
                 if (data.url && data.key) {
                     this.supabaseUrl = data.url;
                     this.supabaseKey = data.key;
@@ -113,7 +118,8 @@ export class GoldDatabase {
         if (!localStorage.getItem("rumaisho_harga_emas")) {
             localStorage.setItem("rumaisho_harga_emas", JSON.stringify(MOCK_GOLD_PRICES));
         }
-        if (!localStorage.getItem("rumaisho_pin")) {
+        const savedPin = localStorage.getItem("rumaisho_pin");
+        if (!savedPin || savedPin === "1234") {
             localStorage.setItem("rumaisho_pin", DEFAULT_PIN);
         }
     }
@@ -174,9 +180,9 @@ export class GoldDatabase {
         return null;
     }
 
-    // Check if using Supabase or LocalStorage
+    // Check if using Supabase or LocalStorage or Self-Hosted
     isUsingSupabase() {
-        return this.getSupabase() !== null;
+        return this.isSelfHosted || this.getSupabase() !== null;
     }
 
     // Test connection with input credentials
@@ -299,11 +305,33 @@ export class GoldDatabase {
 
     // --- PIN Management ---
     async getPin() {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/settings");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.pin) {
+                        if (data.pin === "1234") {
+                            await this.updatePin(DEFAULT_PIN);
+                            return DEFAULT_PIN;
+                        }
+                        localStorage.setItem("rumaisho_pin", data.pin);
+                        return data.pin;
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching PIN from API:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
                 const { data, error } = await client.from("settings").select("value").eq("key", "pin").single();
-                if (data && !error) {
+                if (data && !error && data.value) {
+                    if (data.value === "1234") {
+                        await this.updatePin(DEFAULT_PIN);
+                        return DEFAULT_PIN;
+                    }
                     localStorage.setItem("rumaisho_pin", data.value);
                     return data.value;
                 }
@@ -311,11 +339,28 @@ export class GoldDatabase {
                 console.error("Error fetching PIN from Supabase:", e);
             }
         }
-        return localStorage.getItem("rumaisho_pin") || DEFAULT_PIN;
+        const localPin = localStorage.getItem("rumaisho_pin");
+        if (!localPin || localPin === "1234") {
+            localStorage.setItem("rumaisho_pin", DEFAULT_PIN);
+            return DEFAULT_PIN;
+        }
+        return localPin;
     }
 
     async updatePin(newPin) {
         localStorage.setItem("rumaisho_pin", newPin);
+        if (this.isSelfHosted) {
+            try {
+                await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: "pin", value: newPin })
+                });
+                return true;
+            } catch (e) {
+                console.error("Error saving PIN to API:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -329,6 +374,20 @@ export class GoldDatabase {
 
     // --- Theme Settings ---
     async getHargaEmasThemeColor() {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/settings");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.harga_emas_theme_color) {
+                        localStorage.setItem("rumaisho_setting_harga_emas_theme_color", data.harga_emas_theme_color);
+                        return data.harga_emas_theme_color;
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching theme color from API:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -346,6 +405,18 @@ export class GoldDatabase {
 
     async updateHargaEmasThemeColor(hex) {
         localStorage.setItem("rumaisho_setting_harga_emas_theme_color", hex);
+        if (this.isSelfHosted) {
+            try {
+                await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: "harga_emas_theme_color", value: hex })
+                });
+                return true;
+            } catch (e) {
+                console.error("Error saving theme color to API:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -359,6 +430,14 @@ export class GoldDatabase {
 
     // --- Pembelian (Purchases) ---
     async getPembelian() {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/pembelian");
+                if (res.ok) return await res.json();
+            } catch (e) {
+                console.error("Self-hosted getPembelian error:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -374,11 +453,37 @@ export class GoldDatabase {
     }
 
     async addPembelian(item, allowDuplicateActive = false) {
-        const client = this.getSupabase();
         const payload = {
             ...item,
             tahun: (item.tahun !== undefined && item.tahun !== null && item.tahun !== "" && item.tahun !== "-") ? parseInt(item.tahun, 10) : null
         };
+
+        if (this.isSelfHosted) {
+            const activeStock = await this.getStokAktif();
+            const seriUpper = item.no_seri.trim().toUpperCase();
+            const isCurrentlyInStock = activeStock.some(s => (s.no_seri || "").trim().toUpperCase() === seriUpper);
+            if (isCurrentlyInStock && !allowDuplicateActive) {
+                return {
+                    success: false,
+                    is_active_duplicate: true,
+                    message: `No Seri ${item.no_seri} saat ini masih ada di stok (status Tersedia/Belum Terjual). No seri yang sama dapat diinput kembali jika stok sebelumnya sudah terjual.`
+                };
+            }
+
+            try {
+                const res = await fetch("/api/pembelian", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        const client = this.getSupabase();
 
         if (client) {
             try {
@@ -419,6 +524,16 @@ export class GoldDatabase {
     }
 
     async deletePembelian(id, no_seri) {
+        if (this.isSelfHosted) {
+            try {
+                const targetId = id || no_seri;
+                const res = await fetch(`/api/pembelian/${encodeURIComponent(targetId)}`, { method: "DELETE" });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -444,13 +559,28 @@ export class GoldDatabase {
     }
 
     async updatePembelian(id, updatedFields, oldNoSeri = null) {
-        const client = this.getSupabase();
         const oldSeri = oldNoSeri || updatedFields.no_seri;
         const newSeri = updatedFields.no_seri;
-        const fields = { ...updatedFields };
+        const fields = { ...updatedFields, old_no_seri: oldSeri };
         if ("tahun" in fields) {
             fields.tahun = (fields.tahun !== undefined && fields.tahun !== null && fields.tahun !== "" && fields.tahun !== "-") ? parseInt(fields.tahun, 10) : null;
         }
+
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch(`/api/pembelian/${encodeURIComponent(id)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(fields)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        const client = this.getSupabase();
 
         if (client) {
             try {
@@ -504,6 +634,14 @@ export class GoldDatabase {
 
     // --- Penjualan (Sales) ---
     async getPenjualan() {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/penjualan");
+                if (res.ok) return await res.json();
+            } catch (e) {
+                console.error("Self-hosted getPenjualan error:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -518,6 +656,19 @@ export class GoldDatabase {
     }
 
     async addPenjualan(item) {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/penjualan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(item)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -538,6 +689,15 @@ export class GoldDatabase {
     }
 
     async deletePenjualan(id) {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch(`/api/penjualan/${encodeURIComponent(id)}`, { method: "DELETE" });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -558,6 +718,15 @@ export class GoldDatabase {
 
     // --- Harga Emas (Gold Prices) ---
     async getHargaEmas(tanggalFilter = null) {
+        if (this.isSelfHosted) {
+            try {
+                const url = tanggalFilter ? `/api/harga_emas?tanggal=${encodeURIComponent(tanggalFilter)}` : "/api/harga_emas";
+                const res = await fetch(url);
+                if (res.ok) return await res.json();
+            } catch (e) {
+                console.error("Self-hosted getHargaEmas error:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -582,6 +751,19 @@ export class GoldDatabase {
     }
 
     async addHargaEmas(item) {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/harga_emas", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(item)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -602,6 +784,15 @@ export class GoldDatabase {
     }
 
     async deleteHargaEmas(id) {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch(`/api/harga_emas/${encodeURIComponent(id)}`, { method: "DELETE" });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -621,6 +812,19 @@ export class GoldDatabase {
     }
 
     async updateHargaEmas(id, newHarga) {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch(`/api/harga_emas/${encodeURIComponent(id)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ harga: newHarga })
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -641,6 +845,14 @@ export class GoldDatabase {
 
     // --- Stok Emas (Manual & Aggregated) ---
     async getStokManual() {
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/stok_manual");
+                if (res.ok) return await res.json();
+            } catch (e) {
+                console.error("Self-hosted getStokManual error:", e);
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -655,7 +867,6 @@ export class GoldDatabase {
     }
 
     async addStokManual(item) {
-        const client = this.getSupabase();
         const seriClean = item.no_seri.trim().toUpperCase();
 
         // Check if an unsold unit with this serial number is currently active in stock
@@ -663,6 +874,22 @@ export class GoldDatabase {
         if (activeStock.some(s => (s.no_seri || "").trim().toUpperCase() === seriClean)) {
             return { success: false, message: `No Seri ${item.no_seri} saat ini masih ada di stok (status Tersedia)! No seri yang sama dapat diinput kembali jika stok sebelumnya sudah terjual.` };
         }
+
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch("/api/stok_manual", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(item)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        const client = this.getSupabase();
 
         if (client) {
             try {
@@ -687,6 +914,16 @@ export class GoldDatabase {
     }
 
     async deleteStokManual(id, no_seri) {
+        if (this.isSelfHosted) {
+            try {
+                const targetId = id || no_seri;
+                const res = await fetch(`/api/stok_manual/${encodeURIComponent(targetId)}`, { method: "DELETE" });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
         const client = this.getSupabase();
         if (client) {
             try {
@@ -712,13 +949,28 @@ export class GoldDatabase {
     }
 
     async updateStokManual(id, updatedFields, oldNoSeri = null) {
-        const client = this.getSupabase();
         const oldSeri = oldNoSeri || updatedFields.no_seri;
         const newSeri = updatedFields.no_seri;
-        const fields = { ...updatedFields };
+        const fields = { ...updatedFields, old_no_seri: oldSeri };
         if ("tahun" in fields) {
             fields.tahun = (fields.tahun !== undefined && fields.tahun !== null && fields.tahun !== "" && fields.tahun !== "-") ? parseInt(fields.tahun, 10) : null;
         }
+
+        if (this.isSelfHosted) {
+            try {
+                const res = await fetch(`/api/stok_manual/${encodeURIComponent(id)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(fields)
+                });
+                const result = await res.json();
+                return result;
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
+        }
+
+        const client = this.getSupabase();
 
         if (client) {
             try {
@@ -877,25 +1129,31 @@ export class GoldDatabase {
             });
 
             // Priority 2: FIFO matching for remaining sales
-            let stockIndex = 0;
+            // Only match stock received on or before the sale date (stock.tanggal_masuk <= sale.tanggal).
+            // A historical sale that occurred before this stock was purchased cannot consume it.
             salesList.forEach(sale => {
                 if (sale._matched) return;
-                while (stockIndex < stockList.length && stockList[stockIndex].is_sold) {
-                    stockIndex++;
-                }
-                if (stockIndex < stockList.length) {
-                    const matchedStock = stockList[stockIndex];
+                const saleDate = sale.tanggal ? String(sale.tanggal) : "";
+                const matchedStock = stockList.find(st => {
+                    if (st.is_sold) return false;
+                    if (!saleDate || st.tanggal_masuk === "-" || !st.tanggal_masuk) return true;
+                    return String(st.tanggal_masuk) <= saleDate;
+                });
+                if (matchedStock) {
                     matchedStock.is_sold = true;
                     matchedStock.status = "Terjual";
                     matchedStock.sale_info = sale;
                     sale._matched = true;
-                    stockIndex++;
                 }
             });
         }
 
         // Sort by tanggal_masuk descending for display
-        return rawStock.sort((a, b) => String(b.tanggal_masuk).localeCompare(String(a.tanggal_masuk)));
+        return rawStock.sort((a, b) => {
+            const dateCompare = String(b.tanggal_masuk || "").localeCompare(String(a.tanggal_masuk || ""));
+            if (dateCompare !== 0) return dateCompare;
+            return String(b.created_at || b.id || "").localeCompare(String(a.created_at || a.id || ""));
+        });
     }
 
     // Active stock only (unsold)
