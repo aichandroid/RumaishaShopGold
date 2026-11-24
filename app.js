@@ -1,5 +1,5 @@
 // Application Main Orchestrator for Rumaisho Gold
-import { GoldDatabase } from './db.js?v=3.1';
+import { GoldDatabase } from './db.js?v=3.2';
 import {
     openModal,
     closeModal,
@@ -17,12 +17,12 @@ import {
     focusLoginPinInput,
     handleLoginPinClear,
     startInactivityTracker
-} from './modules/auth.js';
+} from './modules/auth.js?v=3.2';
 import { setupPembelianForm, renderPembelianTable } from './modules/pembelian.js';
 import { setupPenjualanForm, renderPenjualanTable } from './modules/penjualan.js';
 import { setupStokEventListeners, renderStokEmasTable } from './modules/stok.js';
-import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker, applyGoldPriceTheme } from './modules/harga-emas.js?v=3.1';
-import { getDailyThemeForDate } from './modules/utils.js?v=3.1';
+import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker, applyGoldPriceTheme } from './modules/harga-emas.js?v=3.2';
+import { getDailyThemeForDate } from './modules/utils.js?v=3.2';
 import { loadDashboardData, setupRecapTabEventListeners } from './modules/dashboard.js';
 import { setupExportEventListeners, setupImportEventListeners } from './modules/export-import.js';
 import { setupSettingsEventListeners, loadSettingsData } from './modules/settings.js';

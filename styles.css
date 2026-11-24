@@ -1540,6 +1540,8 @@ body.authenticated #login-screen {
     justify-content: center;
     transition: all 0.12s ease;
     user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .numpad-key:hover {

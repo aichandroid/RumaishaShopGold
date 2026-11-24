@@ -82,10 +82,12 @@ export function handleLoginPinBackspace() {
     }
 }
 
-export function handleLoginPinClear() {
+export function handleLoginPinClear(keepStatus = false) {
     enteredLoginPin = "";
     updateLoginPinDisplay();
-    clearLoginStatus();
+    if (!keepStatus) {
+        clearLoginStatus();
+    }
     focusLoginPinInput();
 }
 
@@ -248,7 +250,7 @@ export async function submitLoginPin(db, onLoginSuccess) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnContent;
             }
-            handleLoginPinClear();
+            handleLoginPinClear(true);
         }
     } catch (err) {
         console.error("Login verification error:", err);
@@ -310,17 +312,19 @@ export function setupLoginEventListeners(db, onLoginSuccess) {
     if (hiddenInp) {
         hiddenInp.addEventListener("input", () => {
             const clean = hiddenInp.value.replace(/[^0-9]/g, "").slice(0, 6);
-            enteredLoginPin = clean;
-            updateLoginPinDisplay();
-            clearLoginStatus();
+            if (clean !== enteredLoginPin) {
+                enteredLoginPin = clean;
+                updateLoginPinDisplay();
+                clearLoginStatus();
 
-            if (enteredLoginPin.length === 6) {
-                setTimeout(doSubmit, 120);
+                if (enteredLoginPin.length === 6) {
+                    setTimeout(doSubmit, 120);
+                }
             }
         });
 
         hiddenInp.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" || e.code === "NumpadEnter") {
                 e.preventDefault();
                 doSubmit();
             }
@@ -329,15 +333,22 @@ export function setupLoginEventListeners(db, onLoginSuccess) {
 
     window.addEventListener("keydown", (e) => {
         if (document.body.classList.contains("authenticated")) return;
-        if (e.target === hiddenInp) return;
 
+        // Support digits from both main keyboard row (0-9) and physical numpad (Numpad0-Numpad9)
+        let digit = null;
         if (/^[0-9]$/.test(e.key)) {
+            digit = e.key;
+        } else if (/^Numpad[0-9]$/.test(e.code)) {
+            digit = e.code.replace("Numpad", "");
+        }
+
+        if (digit !== null) {
             e.preventDefault();
-            handleLoginPinDigit(e.key, doSubmit);
-        } else if (e.key === "Backspace") {
+            handleLoginPinDigit(digit, doSubmit);
+        } else if (e.key === "Backspace" || e.key === "Delete" || (e.code === "NumpadDecimal" && e.key === "Delete")) {
             e.preventDefault();
             handleLoginPinBackspace();
-        } else if (e.key === "Enter") {
+        } else if (e.key === "Enter" || e.code === "NumpadEnter") {
             e.preventDefault();
             doSubmit();
         } else if (e.key === "Escape") {
