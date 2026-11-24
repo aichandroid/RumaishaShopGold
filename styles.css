@@ -102,6 +102,32 @@
     --danger: var(--color-danger);
     --text-white: var(--text-primary);
     --text-muted: var(--text-secondary);
+
+    /* Daily Gold Price Board Theme Variables (Dynamic via JS) */
+    --gp-bg-gradient: linear-gradient(180deg, #1A2C26 0%, #13221E 100%);
+    --gp-bg-solid: #1A2C26;
+    --gp-card-border: #8BA396;
+    --gp-banner-bg: #13221E;
+    --gp-date-badge-bg: #253E36;
+    --gp-date-badge-border: #3D5C52;
+    --gp-date-badge-text: #FCE69B;
+    --gp-control-bar-bg: rgba(0, 0, 0, 0.35);
+    --gp-control-bar-border: rgba(255, 255, 255, 0.08);
+    --gp-control-bar-label: #FCE69B;
+    --gp-table-container-bg: #0E1916;
+    --gp-table-container-border: #3D5C52;
+    --gp-table-header-bg: #0E1916;
+    --gp-table-header-text: #E2EDE7;
+    --gp-table-header-border-bottom: #8BA396;
+    --gp-row-bg1: #1E332D;
+    --gp-row-bg2: #172A24;
+    --gp-row-border: #263E36;
+    --gp-gram-text: #FFFFFF;
+    --gp-harga-text: #FCE69B;
+    --gp-badge-bg: #0A1612;
+    --gp-badge-border: #C5A558;
+    --gp-badge-text: #FFFFFF;
+    --gp-watermark: #8BA396;
 }
 
 /* --------------------------------------------------------------------------

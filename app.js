@@ -1,5 +1,5 @@
 // Application Main Orchestrator for Rumaisho Gold
-import { GoldDatabase } from './db.js?v=2.8';
+import { GoldDatabase } from './db.js?v=3.0';
 import {
     openModal,
     closeModal,
@@ -21,7 +21,8 @@ import {
 import { setupPembelianForm, renderPembelianTable } from './modules/pembelian.js';
 import { setupPenjualanForm, renderPenjualanTable } from './modules/penjualan.js';
 import { setupStokEventListeners, renderStokEmasTable } from './modules/stok.js';
-import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker } from './modules/harga-emas.js';
+import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker, applyGoldPriceTheme } from './modules/harga-emas.js?v=3.0';
+import { getDailyThemeForDate } from './modules/utils.js?v=3.0';
 import { loadDashboardData, setupRecapTabEventListeners } from './modules/dashboard.js';
 import { setupExportEventListeners, setupImportEventListeners } from './modules/export-import.js';
 import { setupSettingsEventListeners, loadSettingsData } from './modules/settings.js';
@@ -66,6 +67,7 @@ async function initApp() {
     // 1. Setup Status DB & Topbar Date
     updateDatabaseStatusUI(db);
     updateTopBarDate();
+    applyGoldPriceTheme(getDailyThemeForDate());
 
     // Set Default Dates to Today's date on Inputs
     const todayStr = new Date().toISOString().split("T")[0];

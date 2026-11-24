@@ -124,11 +124,8 @@ export function setupHargaEmasEventListeners(db, onMutate) {
 export async function renderHargaEmasTable(db) {
     const tbody = document.querySelector("#harga-emas-table tbody");
     if (!tbody) return;
-    tbody.innerHTML = "";
 
     const filterDate = document.getElementById("filter-harga-tanggal")?.value;
-    const list = await db.getHargaEmas(filterDate || null);
-
     const todayStr = new Date().toISOString().split("T")[0];
     const selectTheme = document.getElementById("select-harga-emas-theme");
     const themeVal = selectTheme ? selectTheme.value : "auto";
@@ -138,29 +135,37 @@ export async function renderHargaEmasTable(db) {
     } else {
         activeTheme = DAILY_GOLD_THEMES[themeVal] || getDailyThemeForDate(filterDate || todayStr);
     }
+    // Terapkan tema aktif DI AWAL sebelum query DB
     applyGoldPriceTheme(activeTheme);
 
     const badge = document.getElementById("gold-prices-date-badge");
     if (badge) {
-        const todayStr = new Date().toISOString().split("T")[0];
         badge.textContent = `Update Harga Emas: ${formatFullDateIndo(filterDate || todayStr)}`;
     }
 
+    tbody.innerHTML = "";
+    const list = await db.getHargaEmas(filterDate || null);
+
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 2rem;">Tidak ada data harga emas untuk tanggal ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:${activeTheme.gram_text} !important; opacity:0.75; padding: 2rem; background-color: ${activeTheme.row_bg1} !important;">Tidak ada data harga emas untuk tanggal ini.</td></tr>`;
         return;
     }
 
-    list.forEach(item => {
+    list.forEach((item, index) => {
         const tr = document.createElement("tr");
+        const rowBg = (index % 2 === 0) ? activeTheme.row_bg1 : activeTheme.row_bg2;
         tr.innerHTML = `
-            <td class="col-gram"><strong>${item.gram} gram</strong></td>
-            <td class="col-harga text-right">
-                <span class="price-display">${formatRupiah(item.harga)}</span>
+            <td class="col-gram" style="background-color: ${rowBg} !important; border-bottom: 1px solid ${activeTheme.row_border} !important; color: ${activeTheme.gram_text} !important;">
+                <strong style="color: ${activeTheme.gram_text} !important;">${item.gram} gram</strong>
+            </td>
+            <td class="col-harga text-right" style="background-color: ${rowBg} !important; border-bottom: 1px solid ${activeTheme.row_border} !important; color: ${activeTheme.gram_text} !important;">
+                <span class="price-display" style="color: ${activeTheme.harga_text} !important;">${formatRupiah(item.harga)}</span>
                 <input type="text" inputmode="numeric" class="price-edit-input form-input currency-input" value="${formatRibuanInput(item.harga)}" placeholder="0" style="display:none;" autocomplete="off">
             </td>
-            <td class="col-logam text-center"><span class="badge badge-gold-item">${item.jenis_logam}</span></td>
-            <td class="col-aksi text-center" data-html2canvas-ignore="true">
+            <td class="col-logam text-center" style="background-color: ${rowBg} !important; border-bottom: 1px solid ${activeTheme.row_border} !important; color: ${activeTheme.gram_text} !important;">
+                <span class="badge badge-gold-item" style="background-color: ${activeTheme.badge_bg} !important; border: 1px solid ${activeTheme.badge_border} !important; color: ${activeTheme.badge_text} !important;">${item.jenis_logam}</span>
+            </td>
+            <td class="col-aksi text-center" style="background-color: ${rowBg} !important; border-bottom: 1px solid ${activeTheme.row_border} !important;" data-html2canvas-ignore="true">
                 <div class="table-actions-group">
                     <button type="button" class="btn btn-primary btn-icon-action edit-harga-btn" title="Edit" aria-label="Edit">
                         <i class="fa-solid fa-pen-to-square"></i>
@@ -258,6 +263,8 @@ export async function renderHargaEmasTable(db) {
 
         tbody.appendChild(tr);
     });
+
+    applyGoldPriceTheme(activeTheme);
 }
 
 export function setupPriceTemplateEventListener(db) {
@@ -321,9 +328,6 @@ export function setupPriceTemplateEventListener(db) {
 }
 
 export function applyGoldPriceTheme(theme) {
-    const area = document.getElementById("gold-prices-snapshot-area");
-    if (!area) return;
-
     let t = theme;
     if (typeof theme === "string") {
         if (theme === "auto") {
@@ -336,35 +340,122 @@ export function applyGoldPriceTheme(theme) {
             t = DAILY_GOLD_THEMES.senin;
         }
     } else if (!theme || typeof theme !== "object") {
-        t = DAILY_GOLD_THEMES.senin;
+        const filterDate = document.getElementById("filter-harga-tanggal")?.value;
+        const todayStr = new Date().toISOString().split("T")[0];
+        t = getDailyThemeForDate(filterDate || todayStr);
     }
 
     currentActiveThemeObj = t;
 
-    area.style.setProperty("--gp-bg-gradient", `linear-gradient(180deg, ${t.bg_grad_top} 0%, ${t.bg_grad_bottom} 100%)`);
-    area.style.setProperty("--gp-bg-solid", t.bg_grad_top);
-    area.style.setProperty("--gp-card-border", t.card_border);
-    area.style.setProperty("--gp-banner-bg", t.banner_bg);
-    area.style.setProperty("--gp-date-badge-bg", t.date_badge_bg);
-    area.style.setProperty("--gp-date-badge-border", t.date_badge_border);
-    area.style.setProperty("--gp-date-badge-text", t.date_badge_text);
-    area.style.setProperty("--gp-control-bar-bg", t.control_bar_bg);
-    area.style.setProperty("--gp-control-bar-border", t.control_bar_border);
-    area.style.setProperty("--gp-control-bar-label", t.control_bar_label);
-    area.style.setProperty("--gp-table-container-bg", t.table_container_bg);
-    area.style.setProperty("--gp-table-container-border", t.table_container_border);
-    area.style.setProperty("--gp-table-header-bg", t.table_header_bg);
-    area.style.setProperty("--gp-table-header-text", t.table_header_text);
-    area.style.setProperty("--gp-table-header-border-bottom", t.table_header_border_bottom);
-    area.style.setProperty("--gp-row-bg1", t.row_bg1);
-    area.style.setProperty("--gp-row-bg2", t.row_bg2);
-    area.style.setProperty("--gp-row-border", t.row_border);
-    area.style.setProperty("--gp-gram-text", t.gram_text);
-    area.style.setProperty("--gp-harga-text", t.harga_text);
-    area.style.setProperty("--gp-badge-bg", t.badge_bg);
-    area.style.setProperty("--gp-badge-border", t.badge_border);
-    area.style.setProperty("--gp-badge-text", t.badge_text);
-    area.style.setProperty("--gp-watermark", t.watermark);
+    const root = document.documentElement;
+    const area = document.getElementById("gold-prices-snapshot-area");
+
+    const cssVars = {
+        "--gp-bg-gradient": `linear-gradient(180deg, ${t.bg_grad_top} 0%, ${t.bg_grad_bottom} 100%)`,
+        "--gp-bg-solid": t.bg_grad_top,
+        "--gp-card-border": t.card_border,
+        "--gp-banner-bg": t.banner_bg,
+        "--gp-date-badge-bg": t.date_badge_bg,
+        "--gp-date-badge-border": t.date_badge_border,
+        "--gp-date-badge-text": t.date_badge_text,
+        "--gp-control-bar-bg": t.control_bar_bg,
+        "--gp-control-bar-border": t.control_bar_border,
+        "--gp-control-bar-label": t.control_bar_label,
+        "--gp-table-container-bg": t.table_container_bg,
+        "--gp-table-container-border": t.table_container_border,
+        "--gp-table-header-bg": t.table_header_bg,
+        "--gp-table-header-text": t.table_header_text,
+        "--gp-table-header-border-bottom": t.table_header_border_bottom,
+        "--gp-row-bg1": t.row_bg1,
+        "--gp-row-bg2": t.row_bg2,
+        "--gp-row-border": t.row_border,
+        "--gp-gram-text": t.gram_text,
+        "--gp-harga-text": t.harga_text,
+        "--gp-badge-bg": t.badge_bg,
+        "--gp-badge-border": t.badge_border,
+        "--gp-badge-text": t.badge_text,
+        "--gp-watermark": t.watermark
+    };
+
+    if (root) {
+        for (const [key, val] of Object.entries(cssVars)) {
+            root.style.setProperty(key, val);
+        }
+    }
+
+    if (area) {
+        for (const [key, val] of Object.entries(cssVars)) {
+            area.style.setProperty(key, val);
+        }
+
+        // Setel LANGSUNG inline style dengan setProperty(..., ..., "important")
+        area.style.setProperty("background", `linear-gradient(180deg, ${t.bg_grad_top} 0%, ${t.bg_grad_bottom} 100%)`, "important");
+        area.style.setProperty("border-color", t.card_border, "important");
+
+        const banner = area.querySelector(".gold-prices-banner-container");
+        if (banner) {
+            banner.style.setProperty("background-color", t.banner_bg, "important");
+            banner.style.setProperty("border-bottom-color", t.card_border, "important");
+        }
+
+        const dateBadge = document.getElementById("gold-prices-date-badge");
+        if (dateBadge) {
+            dateBadge.style.setProperty("background-color", t.date_badge_bg, "important");
+            dateBadge.style.setProperty("border-color", t.date_badge_border, "important");
+            dateBadge.style.setProperty("color", t.date_badge_text, "important");
+        }
+
+        const controlBar = area.querySelector(".gold-prices-control-bar");
+        if (controlBar) {
+            controlBar.style.setProperty("background-color", t.control_bar_bg, "important");
+            controlBar.style.setProperty("border-bottom-color", t.control_bar_border, "important");
+        }
+
+        area.querySelectorAll(".gold-prices-control-bar label").forEach(label => {
+            label.style.setProperty("color", t.control_bar_label, "important");
+        });
+
+        const tableContainer = area.querySelector(".gold-price-content-area .table-container");
+        if (tableContainer) {
+            tableContainer.style.setProperty("background-color", t.table_container_bg, "important");
+            tableContainer.style.setProperty("border-color", t.table_container_border, "important");
+        }
+
+        area.querySelectorAll("#harga-emas-table th").forEach(th => {
+            th.style.setProperty("background-color", t.table_header_bg, "important");
+            th.style.setProperty("color", t.table_header_text, "important");
+            th.style.setProperty("border-bottom-color", t.table_header_border_bottom, "important");
+        });
+
+        const rows = area.querySelectorAll("#harga-emas-table tbody tr");
+        rows.forEach((tr, idx) => {
+            const bg = (idx % 2 === 0) ? t.row_bg1 : t.row_bg2;
+            tr.querySelectorAll("td").forEach(td => {
+                td.style.setProperty("background-color", bg, "important");
+                td.style.setProperty("border-bottom-color", t.row_border, "important");
+                td.style.setProperty("color", t.gram_text, "important");
+            });
+        });
+
+        area.querySelectorAll("#harga-emas-table .col-gram strong").forEach(strong => {
+            strong.style.setProperty("color", t.gram_text, "important");
+        });
+
+        area.querySelectorAll("#harga-emas-table .price-display").forEach(price => {
+            price.style.setProperty("color", t.harga_text, "important");
+        });
+
+        area.querySelectorAll("#harga-emas-table .badge, #harga-emas-table .badge-gold-item").forEach(badgeEl => {
+            badgeEl.style.setProperty("background-color", t.badge_bg, "important");
+            badgeEl.style.setProperty("border-color", t.badge_border, "important");
+            badgeEl.style.setProperty("color", t.badge_text, "important");
+        });
+
+        const watermark = area.querySelector(".snapshot-watermark");
+        if (watermark) {
+            watermark.style.setProperty("color", t.watermark, "important");
+        }
+    }
 }
 
 export async function setupThemeColorPicker(db) {
