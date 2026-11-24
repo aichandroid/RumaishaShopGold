@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Template Harga Emas Harian - Rumaisho Gold</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --primary: #1A3C34;
+            --primary-light: #244C42;
+            --accent-gold: #C6A15B;
+            --accent-gold-light: #EBD59B;
+            --surface: #0E1F1B;
+            --surface-card: #152B25;
+            --surface-border: rgba(198, 161, 91, 0.25);
+            --text-main: #F4F7F5;
+            --text-muted: #9EABA5;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+            --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--surface);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem 4rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Bar */
+        header.page-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(198, 161, 91, 0.15);
+            border: 1px solid var(--accent-gold);
+            border-radius: var(--radius-full);
+            color: var(--accent-gold-light);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        h1.page-title {
+            font-size: 2.15rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.65rem;
+        }
+
+        p.page-subtitle {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 780px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .stats-badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat-chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 5px 12px;
+            border-radius: var(--radius-full);
+            font-size: 0.82rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-chip strong {
+            color: var(--accent-gold-light);
+        }
+
+        /* Day Selector Navigation */
+        .day-nav-wrapper {
+            margin-bottom: 2.5rem;
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 0.75rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .day-nav {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        @media (max-width: 900px) {
+            .day-nav {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 520px) {
+            .day-nav {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .day-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 10px 8px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .day-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #FFFFFF;
+        }
+
+        .day-tab-btn.active {
+            background: rgba(198, 161, 91, 0.2);
+            border-color: var(--accent-gold);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .day-name {
+            font-size: 0.98rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .day-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .day-tone-label {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        /* Main Workspace: Left (Preview) + Right (Palette & Specs) */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 780px) 1fr;
+            gap: 2rem;
+            align-items: start;
+            margin-bottom: 3.5rem;
+        }
+
+        @media (max-width: 1100px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+            .workspace-grid > * {
+                width: 100%;
+                max-width: 780px;
+            }
+        }
+
+        /* View Toggle Bar */
+        .view-toggle-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .toggle-btn:hover {
+            color: #FFFFFF;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-gold);
+            color: #121E1A;
+            border-color: var(--accent-gold);
+        }
+
+        .action-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .btn-action-primary {
+            background: #C6A15B;
+            color: #0E1F1B;
+            border: 1px solid #EBD59B;
+        }
+
+        .btn-action-primary:hover {
+            background: #D8B36E;
+            box-shadow: 0 4px 10px rgba(198, 161, 91, 0.4);
+        }
+
+        .btn-action-outline {
+            background: transparent;
+            color: var(--accent-gold-light);
+            border: 1px solid var(--surface-border);
+        }
+
+        .btn-action-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-gold);
+        }
+
+        /* Preview Display Area */
+        .preview-container {
+            width: 100%;
+            position: relative;
+        }
+
+        /* -------------------------------------------------------- */
+        /* LIVE CSS SNAPSHOT CARD (Exact layout of Rumaisho Gold)   */
+        /* -------------------------------------------------------- */
+        .snapshot-card {
+            width: 100%;
+            max-width: 780px;
+            border-radius: var(--radius-lg);
+            border-width: 2px;
+            border-style: solid;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, background 0.3s ease;
+        }
+
+        .snapshot-banner-container {
+            width: 100%;
+            text-align: center;
+            padding: 18px 16px;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            box-sizing: border-box;
+        }
+
+        .snapshot-banner-img {
+            max-width: 360px;
+            width: 100%;
+            height: auto;
+            margin: 0 auto;
+            display: block;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .snapshot-date-badge {
+            margin: 14px 20px 0;
+            padding: 9px 16px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 8px;
+            border-width: 1.5px;
+            border-style: solid;
+            letter-spacing: 0.02em;
+            box-sizing: border-box;
+        }
+
+        .snapshot-content-area {
+            padding: 14px 20px 12px;
+            box-sizing: border-box;
+        }
+
+        .snapshot-table-wrapper {
+            border-radius: 8px;
+            border-width: 1.5px;
+            border-style: solid;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .snapshot-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin: 0;
+        }
+
+        .snapshot-table th {
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 10px 16px;
+            border-bottom-width: 2px;
+            border-bottom-style: solid;
+            box-sizing: border-box;
+        }
+
+        .snapshot-table td {
+            padding: 10px 16px;
+            vertical-align: middle;
+            font-size: 0.92rem;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            box-sizing: border-box;
+        }
+
+        .snapshot-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .col-gram {
+            width: 28%;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .col-harga {
+            width: 42%;
+            text-align: right;
+            font-weight: 800;
+            font-size: 0.98rem;
+            letter-spacing: 0.01em;
+        }
+
+        .col-logam {
+            width: 30%;
+            text-align: center;
+        }
+
+        .logam-pill-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-width: 1px;
+            border-style: solid;
+            white-space: nowrap;
+        }
+
+        .snapshot-watermark {
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 4px 0 16px;
+        }
+
+        /* PNG Image Preview View */
+        .png-image-view {
+            width: 100%;
+            max-width: 780px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            display: none;
+        }
+
+        .png-image-view img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* -------------------------------------------------------- */
+        /* RIGHT COLUMN: PALETTE & CONTRAST DETAILS                 */
+        /* -------------------------------------------------------- */
+        .specs-panel {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .panel-heading {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .theme-title-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.35rem;
+        }
+
+        .theme-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+
+        .theme-type-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            text-transform: uppercase;
+        }
+
+        .theme-type-badge.dark {
+            background: rgba(22, 34, 30, 0.8);
+            border: 1px solid #8BA396;
+            color: #E2EDE7;
+        }
+
+        .theme-type-badge.light {
+            background: rgba(245, 242, 235, 0.85);
+            border: 1px solid #C8BCAE;
+            color: #2A231A;
+        }
+
+        .theme-concept {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Swatches Section */
+        .section-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent-gold-light);
+            font-weight: 700;
+            margin: 1.25rem 0 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatches-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .swatch-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+        }
+
+        .swatch-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .swatch-color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .swatch-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .swatch-code {
+            font-family: monospace;
+            font-size: 0.78rem;
+            color: var(--accent-gold-light);
+            background: rgba(0, 0, 0, 0.35);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .swatch-code:hover {
+            background: var(--accent-gold);
+            color: #0E1F1B;
+        }
+
+        /* Contrast Cards */
+        .contrast-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(198, 161, 91, 0.2);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-top: 1rem;
+        }
+
+        .contrast-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-gold-light);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .contrast-metric {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .contrast-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* -------------------------------------------------------- */
+        /* GALLERY SECTION: ALL 6 DAYS IN A GLANCE                  */
+        /* -------------------------------------------------------- */
+        .gallery-section {
+            margin-top: 4rem;
+            padding-top: 2.5rem;
+            border-top: 1px solid var(--surface-border);
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .gallery-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 0.5rem;
+        }
+
+        .gallery-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 990px) {
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .gallery-card {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-gold);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .gallery-card-thumb {
+            width: 100%;
+            cursor: pointer;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .gallery-card-thumb img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-card-thumb:hover img {
+            transform: scale(1.02);
+        }
+
+        .gallery-card-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .gallery-card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .gallery-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            flex-grow: 1;
+        }
+
+        .gallery-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .gallery-card-actions a,
+        .gallery-card-actions button {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-inspect {
+            background: rgba(198, 161, 91, 0.2);
+            color: var(--accent-gold-light);
+            border: 1px solid var(--accent-gold) !important;
+        }
+
+        .btn-inspect:hover {
+            background: var(--accent-gold);
+            color: #0E1F1B;
+        }
+
+        .btn-download-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            color: #FFFFFF;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .btn-download-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1A3C34;
+            border: 1px solid var(--accent-gold);
+            color: #FFFFFF;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="page-header">
+            <div class="brand-badge">Rumaisho Gold &bull; Snapshot System</div>
+            <h1 class="page-title">Preview Template Daftar Harga Emas Harian</h1>
+            <p class="page-subtitle">
+                Eksplorasi 6 tema warna harian (Senin sampai Sabtu) dengan kombinasi seimbang terang-gelap,
+                bernuansa kalem tanpa neon, serta kontras teks tinggi standar keterbacaan Status WhatsApp.
+            </p>
+            <div class="stats-badges">
+                <span class="stat-chip"><strong>6 Tema</strong> Senin s.d. Sabtu</span>
+                <span class="stat-chip"><strong>Resolusi</strong> 780 &times; 629 px</span>
+                <span class="stat-chip"><strong>Rasio Kontras</strong> WCAG AAA (&gt;7:1 s.d. &gt;12:1)</span>
+                <span class="stat-chip"><strong>Format</strong> Live CSS + Export PNG</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs: Senin s.d. Sabtu -->
+        <div class="day-nav-wrapper">
+            <div class="day-nav" id="day-nav">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            <!-- Left: Card Display Area -->
+            <div class="preview-container">
+                <div class="view-toggle-bar">
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="btn-view-css" onclick="switchView('css')">Live CSS Card</button>
+                        <button class="toggle-btn" id="btn-view-png" onclick="switchView('png')">File Gambar PNG</button>
+                    </div>
+                    <div class="action-links">
+                        <a id="btn-open-full" href="#" target="_blank" class="btn-action btn-action-outline">
+                            Buka Gambar Penuh &nearr;
+                        </a>
+                        <a id="btn-download-png" href="#" download class="btn-action btn-action-primary">
+                            Unduh PNG (780px) &darr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 1. LIVE CSS CARD PREVIEW -->
+                <div class="snapshot-card" id="live-snapshot-card">
+                    <!-- Banner -->
+                    <div class="snapshot-banner-container" id="card-banner-container">
+                        <img id="card-logo-img" src="../logo.jpg" alt="Rumaisho Gold Banner" class="snapshot-banner-img" onerror="this.src='logo.jpg'">
+                    </div>
+
+                    <!-- Date Badge -->
+                    <div class="snapshot-date-badge" id="card-date-badge">
+                        Senin, 24 November 2026
+                    </div>
+
+                    <!-- Content & Table Area -->
+                    <div class="snapshot-content-area">
+                        <div class="snapshot-table-wrapper" id="card-table-wrapper">
+                            <table class="snapshot-table" id="card-table">
+                                <thead id="card-table-head">
+                                    <tr>
+                                        <th class="col-gram">UKURAN GRAM</th>
+                                        <th class="col-harga">HARGA (RP)</th>
+                                        <th class="col-logam">LOGAM MULIA</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="card-table-body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Watermark -->
+                    <div class="snapshot-watermark" id="card-watermark">
+                        app developed by AisMu
+                    </div>
+                </div>
+
+                <!-- 2. PNG IMAGE PREVIEW -->
+                <div class="png-image-view" id="png-image-container">
+                    <img id="active-png-img" src="template-senin.png" alt="Snapshot PNG Template" onerror="handlePngError(this)">
+                </div>
+            </div>
+
+            <!-- Right: Palette & Technical Specifications -->
+            <div class="specs-panel">
+                <div class="panel-heading">
+                    <div class="theme-title-wrap">
+                        <h2 class="theme-title" id="spec-theme-title">Senin</h2>
+                        <span class="theme-type-badge dark" id="spec-theme-type">Soft Dark</span>
+                    </div>
+                    <p class="theme-concept" id="spec-theme-concept">
+                        Awal pekan segar & tenang, bernuansa sage gelap mewah tanpa neon.
+                    </p>
+                </div>
+
+                <!-- Palette Swatches -->
+                <div class="section-title">Palet Warna Resmi &amp; Kode Hex</div>
+                <div class="swatches-grid" id="swatches-list">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <!-- Contrast Rationale -->
+                <div class="section-title">Rasional Desain &amp; Keterbacaan</div>
+                <div class="contrast-box">
+                    <div class="contrast-header">
+                        <span>Kontras Teks Gramasi</span>
+                        <span class="contrast-metric" id="spec-contrast-gram">AAA (14.2:1)</span>
+                    </div>
+                    <p class="contrast-desc" id="spec-gram-desc">
+                        Menggunakan kontras tinggi untuk memastikan satuan berat terlihat seketika saat di-zoom pada layar ponsel.
+                    </p>
+                </div>
+
+                <div class="contrast-box">
+                    <div class="contrast-header">
+                        <span>Kontras Harga Emas</span>
+                        <span class="contrast-metric" id="spec-contrast-harga">AAA (10.8:1)</span>
+                    </div>
+                    <p class="contrast-desc" id="spec-harga-desc">
+                        Aksen warna harga dirancang tajam dan berbobot tanpa pendaran neon agar nyaman dibaca dan tampak prestisius.
+                    </p>
+                </div>
+
+                <div class="contrast-box">
+                    <div class="contrast-header">
+                        <span>Kontras Badge Logam Mulia</span>
+                        <span class="contrast-metric" id="spec-contrast-badge">AAA (18.5:1)</span>
+                    </div>
+                    <p class="contrast-desc" id="spec-badge-desc">
+                        Badge logam mulia menggunakan latar solid berkontras tinggi agar teks merk seperti Antam, UBS, dan Galeri24 selalu tampak tajam dan tidak pudar.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery of all 6 days -->
+        <section class="gallery-section">
+            <div class="gallery-header">
+                <h3 class="gallery-title">Katalog Semua Template 6 Hari (Senin &ndash; Sabtu)</h3>
+                <p class="gallery-subtitle">Klik gambar atau tombol "Inspeksi Tema" untuk beralih dan melihat pratinjau live secara mendalam.</p>
+            </div>
+
+            <div class="gallery-grid" id="gallery-grid">
+                <!-- Injected via JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <div class="toast" id="toast">Kode Hex disalin ke clipboard!</div>
+
+    <script>
+        // Resolve assets path according to current URL
+        const isParentDir = window.location.pathname.endsWith('preview-templates.html');
+        const assetPrefix = isParentDir ? 'preview_templates/' : '';
+        const logoPath = isParentDir ? 'logo.jpg' : '../logo.jpg';
+
+        const THEMES_DATA = {
+            senin: {
+                day: "Senin",
+                date_str: "Senin, 24 November 2026",
+                name: "Deep Muted Sage",
+                type: "Soft Dark",
+                concept: "Awal pekan segar & tenang, bernuansa sage gelap mewah tanpa neon.",
+                bg_grad_top: "#1A2C26",
+                bg_grad_bottom: "#13221E",
+                card_border: "#8BA396",
+                banner_bg: "#13221E",
+                date_badge_bg: "#253E36",
+                date_badge_border: "#3D5C52",
+                date_badge_text: "#FCE69B",
+                table_border: "#3D5C52",
+                table_header_bg: "#0E1916",
+                table_header_text: "#E2EDE7",
+                table_header_border_bottom: "#8BA396",
+                row_bg1: "#1E332D",
+                row_bg2: "#172A24",
+                row_border_bottom: "#263E36",
+                gram_text: "#FFFFFF",
+                harga_text: "#FCE69B",
+                badge_bg: "#0A1612",
+                badge_border: "#C5A558",
+                badge_text: "#FFFFFF",
+                watermark: "#8BA396",
+                gram_contrast: "AAA (14.2:1)",
+                gram_desc: "Teks gram putih murni (#FFFFFF) di atas baris sage gelap (#1E332D / #172A24) sangat kontras dan tegas.",
+                harga_contrast: "AAA (11.5:1)",
+                harga_desc: "Teks harga emas champagne lembut (#FCE69B) memberikan aksen mulia tanpa menyilaukan mata.",
+                badge_contrast: "AAA (18.5:1)",
+                badge_desc: "Teks putih murni (#FFFFFF) di atas latar badge hijau sage pekat solid (#0A1612) dengan border emas (#C5A558) menghasilkan kontras 18.5:1 yang sangat tajam dan tidak pudar."
+            },
+            selasa: {
+                day: "Selasa",
+                date_str: "Selasa, 25 November 2026",
+                name: "Warm Linen Cream",
+                type: "Soft Light / Earth Pastel",
+                concept: "Bersih, hangat, terang namun tidak silau/blinding di mata.",
+                bg_grad_top: "#F5F2EB",
+                bg_grad_bottom: "#ECE7DC",
+                card_border: "#C8BCAE",
+                banner_bg: "#ECE7DC",
+                date_badge_bg: "#3D352A",
+                date_badge_border: "#544A3D",
+                date_badge_text: "#FBF5E8",
+                table_border: "#C8BCAE",
+                table_header_bg: "#2A231A",
+                table_header_text: "#FAF6EE",
+                table_header_border_bottom: "#B09875",
+                row_bg1: "#FAF8F5",
+                row_bg2: "#EFECE3",
+                row_border_bottom: "#E4DDD1",
+                gram_text: "#2A231A",
+                harga_text: "#734F08",
+                badge_bg: "#E5DDD0",
+                badge_border: "#B09875",
+                badge_text: "#2A231A",
+                watermark: "#8C8275",
+                gram_contrast: "AAA (14.8:1)",
+                gram_desc: "Espresso pekat (#2A231A) di atas latar linen terang (#FAF8F5) memberikan ketajaman huruf maksimal.",
+                harga_contrast: "AAA (7.8:1)",
+                harga_desc: "Cokelat tembaga emas tua (#734F08) sangat berbobot dan kontras dibanding warna emas kuning muda biasa.",
+                badge_contrast: "AAA (11.5:1)",
+                badge_desc: "Teks espresso pekat (#2A231A) di atas latar badge linen krem solid (#E5DDD0) dengan border tembaga (#B09875) memberikan kontras 11.5:1 yang bersih dan terbaca jelas."
+            },
+            rabu: {
+                day: "Rabu",
+                date_str: "Rabu, 26 November 2026",
+                name: "Muted Slate Navy",
+                type: "Soft Dark",
+                concept: "Sejuk, profesional, tenang, kontras tinggi dan mantap.",
+                bg_grad_top: "#18232C",
+                bg_grad_bottom: "#121B22",
+                card_border: "#71889B",
+                banner_bg: "#121B22",
+                date_badge_bg: "#22313D",
+                date_badge_border: "#3B5164",
+                date_badge_text: "#FFE8A8",
+                table_border: "#3B5164",
+                table_header_bg: "#0D141A",
+                table_header_text: "#E2EDF7",
+                table_header_border_bottom: "#71889B",
+                row_bg1: "#1C2A35",
+                row_bg2: "#15212A",
+                row_border_bottom: "#243542",
+                gram_text: "#FFFFFF",
+                harga_text: "#FFE8A8",
+                badge_bg: "#0A1117",
+                badge_border: "#BAA064",
+                badge_text: "#FFFFFF",
+                watermark: "#7E93A4",
+                gram_contrast: "AAA (15.1:1)",
+                gram_desc: "Putih salju murni (#FFFFFF) berpadu dengan biru slate navy memberikan kesan kokoh dan premium.",
+                harga_contrast: "AAA (12.1:1)",
+                harga_desc: "Emas platinum cerah (#FFE8A8) langsung menarik perhatian pembeli pada angka nominal harga.",
+                badge_contrast: "AAA (19.0:1)",
+                badge_desc: "Teks putih murni (#FFFFFF) di atas latar badge biru slate pekat solid (#0A1117) dengan border emas champagne (#BAA064) menghasilkan kontras 19.0:1 yang tegas dan profesional."
+            },
+            kamis: {
+                day: "Kamis",
+                date_str: "Kamis, 27 November 2026",
+                name: "Soft Celadon / Matcha Tint",
+                type: "Soft Light / Pastel",
+                concept: "Teduh, menyejukkan mata, nuansa hijau celadon alami yang menenangkan.",
+                bg_grad_top: "#EDF3EE",
+                bg_grad_bottom: "#E2EBE4",
+                card_border: "#A2BDB1",
+                banner_bg: "#E2EBE4",
+                date_badge_bg: "#27382B",
+                date_badge_border: "#3E5644",
+                date_badge_text: "#F1F7EE",
+                table_border: "#A2BDB1",
+                table_header_bg: "#1D2A20",
+                table_header_text: "#F1F7EE",
+                table_header_border_bottom: "#8FAD95",
+                row_bg1: "#F7FAF7",
+                row_bg2: "#E7EFE9",
+                row_border_bottom: "#DCE6DE",
+                gram_text: "#17231A",
+                harga_text: "#56540B",
+                badge_bg: "#D7E3D9",
+                badge_border: "#8FAD95",
+                badge_text: "#1D2A20",
+                watermark: "#748777",
+                gram_contrast: "AAA (15.4:1)",
+                gram_desc: "Hijau hutan gelap (#17231A) di atas pastel celadon (#F7FAF7) memberi kenyamanan mata jangka panjang.",
+                harga_contrast: "AAA (7.2:1)",
+                harga_desc: "Zaitun emas tua (#56540B) memiliki kontras kuat di atas latar hijau celadon tanpa silau.",
+                badge_contrast: "AAA (11.3:1)",
+                badge_desc: "Teks hijau hutan tua (#1D2A20) di atas latar badge celadon alami solid (#D7E3D9) dengan border sage (#8FAD95) memberikan kontras 11.3:1 yang teduh dan nyaman."
+            },
+            jumat: {
+                day: "Jumat",
+                date_str: "Jumat, 28 November 2026",
+                name: "Deep Espresso Charcoal",
+                type: "Soft Dark",
+                concept: "Mewah, anggun, hangat, nuansa Jumat berkah dengan aksen emas kaya.",
+                bg_grad_top: "#221C19",
+                bg_grad_bottom: "#181311",
+                card_border: "#A58B79",
+                banner_bg: "#181311",
+                date_badge_bg: "#362C27",
+                date_badge_border: "#52433C",
+                date_badge_text: "#FCE592",
+                table_border: "#52433C",
+                table_header_bg: "#120E0D",
+                table_header_text: "#F9EFE9",
+                table_header_border_bottom: "#D4AF37",
+                row_bg1: "#28211E",
+                row_bg2: "#1E1815",
+                row_border_bottom: "#352A25",
+                gram_text: "#FFFFFF",
+                harga_text: "#FCE592",
+                badge_bg: "#0E0A09",
+                badge_border: "#D4AF37",
+                badge_text: "#FFFFFF",
+                watermark: "#9E8E85",
+                gram_contrast: "AAA (15.8:1)",
+                gram_desc: "Putih bersih (#FFFFFF) di atas arang espresso tua (#28211E) menghasilkan keterbacaan sempurna.",
+                harga_contrast: "AAA (11.8:1)",
+                harga_desc: "Emas kuning hangat (#FCE592) menyala dengan indah tanpa menyakitkan retina mata di malam hari.",
+                badge_contrast: "AAA (19.7:1)",
+                badge_desc: "Teks putih murni (#FFFFFF) di atas latar badge espresso arang pekat solid (#0E0A09) dengan border emas kaya (#D4AF37) menghasilkan kontras puncak 19.7:1 yang sangat mewah."
+            },
+            sabtu: {
+                day: "Sabtu",
+                date_str: "Sabtu, 29 November 2026",
+                name: "Warm Cashmere Taupe",
+                type: "Soft Light / Earth Pastel",
+                concept: "Elegan akhir pekan, santai, nuansa kasmir bernuansa mewah.",
+                bg_grad_top: "#F4EFEA",
+                bg_grad_bottom: "#EBE2DA",
+                card_border: "#C5B4A5",
+                banner_bg: "#EBE2DA",
+                date_badge_bg: "#3B2E2A",
+                date_badge_border: "#58453F",
+                date_badge_text: "#FCEEE5",
+                table_border: "#C5B4A5",
+                table_header_bg: "#2B201D",
+                table_header_text: "#FAF3EE",
+                table_header_border_bottom: "#B49A88",
+                row_bg1: "#FAF7F5",
+                row_bg2: "#EFE7E0",
+                row_border_bottom: "#E2D8CF",
+                gram_text: "#291D1A",
+                harga_text: "#784714",
+                badge_bg: "#E2D6CC",
+                badge_border: "#B49A88",
+                badge_text: "#2B201D",
+                watermark: "#8F7D73",
+                gram_contrast: "AAA (14.5:1)",
+                gram_desc: "Cokelat kopi tua (#291D1A) di atas kasmir lembut (#FAF7F5) memberikan estetika earth tone mewah.",
+                harga_contrast: "AAA (8.2:1)",
+                harga_desc: "Karamel tembaga tua (#784714) memberikan bobot angka nominal yang jelas dan mantap.",
+                badge_contrast: "AAA (11.1:1)",
+                badge_desc: "Teks kopi pekat (#2B201D) di atas latar badge kasmir taupe solid (#E2D6CC) dengan border tembaga (#B49A88) memberikan kontras 11.1:1 bernuansa hangat dan prestisius."
+            }
+        };
+
+        const SAMPLE_PRICES = [
+            { gram: "1 gram", harga: "Rp 1.450.000", logam: "Antam" },
+            { gram: "5 gram", harga: "Rp 7.050.000", logam: "Antam" },
+            { gram: "10 gram", harga: "Rp 14.000.000", logam: "Antam" },
+            { gram: "1 gram", harga: "Rp 1.420.000", logam: "UBS" },
+            { gram: "5 gram", harga: "Rp 6.900.000", logam: "UBS" },
+            { gram: "1 gram", harga: "Rp 1.430.000", logam: "Galeri24" },
+            { gram: "10 gram", harga: "Rp 250.000", logam: "Perak Nadir" }
+        ];
+
+        let currentDayKey = "senin";
+        let currentView = "css"; // "css" or "png"
+
+        // Initialize Page
+        function init() {
+            renderDayNav();
+            renderGalleryGrid();
+            selectDay("senin");
+        }
+
+        // Render Day Navigation Buttons
+        function renderDayNav() {
+            const nav = document.getElementById("day-nav");
+            nav.innerHTML = "";
+
+            Object.keys(THEMES_DATA).forEach(key => {
+                const theme = THEMES_DATA[key];
+                const btn = document.createElement("button");
+                btn.className = `day-tab-btn ${key === currentDayKey ? 'active' : ''}`;
+                btn.id = `tab-btn-${key}`;
+                btn.onclick = () => selectDay(key);
+
+                btn.innerHTML = `
+                    <span class="day-name">
+                        <span class="day-color-dot" style="background: ${theme.bg_grad_top};"></span>
+                        ${theme.day}
+                    </span>
+                    <span class="day-tone-label">${theme.type.split('/')[0]}</span>
+                `;
+                nav.appendChild(btn);
+            });
+        }
+
+        // Select Day
+        function selectDay(key) {
+            currentDayKey = key;
+            const theme = THEMES_DATA[key];
+
+            // Update active state in nav
+            document.querySelectorAll(".day-tab-btn").forEach(b => b.classList.remove("active"));
+            const activeBtn = document.getElementById(`tab-btn-${key}`);
+            if (activeBtn) activeBtn.classList.add("active");
+
+            // Apply theme to Live CSS Card
+            applyThemeToCssCard(theme);
+
+            // Update PNG Image
+            const pngFileName = `template-${key}.png`;
+            const pngPath = assetPrefix + pngFileName;
+            document.getElementById("active-png-img").src = pngPath;
+
+            // Update action links
+            const btnOpen = document.getElementById("btn-open-full");
+            const btnDownload = document.getElementById("btn-download-png");
+            btnOpen.href = pngPath;
+            btnDownload.href = pngPath;
+            btnDownload.setAttribute("download", pngFileName);
+
+            // Update Specs Panel
+            updateSpecsPanel(key, theme);
+        }
+
+        // Apply styles to Live CSS Card
+        function applyThemeToCssCard(theme) {
+            const card = document.getElementById("live-snapshot-card");
+            const banner = document.getElementById("card-banner-container");
+            const dateBadge = document.getElementById("card-date-badge");
+            const tableWrapper = document.getElementById("card-table-wrapper");
+            const tableHead = document.getElementById("card-table-head");
+            const tableBody = document.getElementById("card-table-body");
+            const watermark = document.getElementById("card-watermark");
+
+            // Logo path check
+            document.getElementById("card-logo-img").src = logoPath;
+
+            // Card background & border
+            card.style.background = `linear-gradient(180deg, ${theme.bg_grad_top} 0%, ${theme.bg_grad_bottom} 100%)`;
+            card.style.borderColor = theme.card_border;
+
+            // Banner
+            banner.style.backgroundColor = theme.banner_bg;
+            banner.style.borderBottomColor = theme.card_border + "55";
+
+            // Date Badge
+            dateBadge.style.backgroundColor = theme.date_badge_bg;
+            dateBadge.style.borderColor = theme.date_badge_border;
+            dateBadge.style.color = theme.date_badge_text;
+            dateBadge.textContent = theme.date_str;
+
+            // Table Wrapper & Header
+            tableWrapper.style.borderColor = theme.table_border;
+            tableWrapper.style.backgroundColor = theme.row_bg1;
+
+            const thList = tableHead.querySelectorAll("th");
+            thList.forEach(th => {
+                th.style.backgroundColor = theme.table_header_bg;
+                th.style.color = theme.table_header_text;
+                th.style.borderBottomColor = theme.table_header_border_bottom;
+            });
+
+            // Table Rows
+            tableBody.innerHTML = "";
+            SAMPLE_PRICES.forEach((item, index) => {
+                const tr = document.createElement("tr");
+                const rowBg = index % 2 === 0 ? theme.row_bg1 : theme.row_bg2;
+                tr.style.backgroundColor = rowBg;
+
+                const tdGram = document.createElement("td");
+                tdGram.className = "col-gram";
+                tdGram.style.color = theme.gram_text;
+                tdGram.style.borderBottomColor = theme.row_border_bottom;
+                tdGram.textContent = item.gram;
+
+                const tdHarga = document.createElement("td");
+                tdHarga.className = "col-harga";
+                tdHarga.style.color = theme.harga_text;
+                tdHarga.style.borderBottomColor = theme.row_border_bottom;
+                tdHarga.textContent = item.harga;
+
+                const tdLogam = document.createElement("td");
+                tdLogam.className = "col-logam";
+                tdLogam.style.borderBottomColor = theme.row_border_bottom;
+
+                const badge = document.createElement("span");
+                badge.className = "logam-pill-badge";
+                badge.style.backgroundColor = theme.badge_bg;
+                badge.style.borderColor = theme.badge_border;
+                badge.style.color = theme.badge_text;
+                badge.textContent = item.logam;
+
+                tdLogam.appendChild(badge);
+                tr.appendChild(tdGram);
+                tr.appendChild(tdHarga);
+                tr.appendChild(tdLogam);
+                tableBody.appendChild(tr);
+            });
+
+            // Watermark
+            watermark.style.color = theme.watermark;
+        }
+
+        // Update Specifications Panel
+        function updateSpecsPanel(key, theme) {
+            document.getElementById("spec-theme-title").textContent = `${theme.day} - ${theme.name}`;
+            const typeBadge = document.getElementById("spec-theme-type");
+            typeBadge.textContent = theme.type;
+            typeBadge.className = `theme-type-badge ${theme.type.includes('Dark') ? 'dark' : 'light'}`;
+            document.getElementById("spec-theme-concept").textContent = theme.concept;
+
+            // Swatches
+            const swatchesList = document.getElementById("swatches-list");
+            const swatches = [
+                { name: "Background Atas", code: theme.bg_grad_top },
+                { name: "Background Bawah", code: theme.bg_grad_bottom },
+                { name: "Border Kartu", code: theme.card_border },
+                { name: "Banner Container", code: theme.banner_bg },
+                { name: "Date Badge BG", code: theme.date_badge_bg },
+                { name: "Teks Date Badge", code: theme.date_badge_text },
+                { name: "Header Tabel BG", code: theme.table_header_bg },
+                { name: "Teks Header", code: theme.table_header_text },
+                { name: "Baris Zebra 1", code: theme.row_bg1 },
+                { name: "Baris Zebra 2", code: theme.row_bg2 },
+                { name: "Teks Gramasi", code: theme.gram_text },
+                { name: "Teks Harga Emas", code: theme.harga_text },
+                { name: "Background Badge Logam", code: theme.badge_bg },
+                { name: "Border Badge Logam", code: theme.badge_border },
+                { name: "Teks Badge Logam", code: theme.badge_text },
+                { name: "Watermark", code: theme.watermark }
+            ];
+
+            swatchesList.innerHTML = swatches.map(s => `
+                <div class="swatch-item">
+                    <div class="swatch-info">
+                        <div class="swatch-color-box" style="background: ${s.code};"></div>
+                        <span class="swatch-name">${s.name}</span>
+                    </div>
+                    <span class="swatch-code" title="Klik untuk menyalin" onclick="copyHex('${s.code}')">${s.code}</span>
+                </div>
+            `).join("");
+
+            // Contrast specs
+            document.getElementById("spec-contrast-gram").textContent = theme.gram_contrast;
+            document.getElementById("spec-gram-desc").textContent = theme.gram_desc;
+            document.getElementById("spec-contrast-harga").textContent = theme.harga_contrast;
+            document.getElementById("spec-harga-desc").textContent = theme.harga_desc;
+            if (document.getElementById("spec-contrast-badge") && theme.badge_contrast) {
+                document.getElementById("spec-contrast-badge").textContent = theme.badge_contrast;
+                document.getElementById("spec-badge-desc").textContent = theme.badge_desc;
+            }
+        }
+
+        // View Switcher (Live CSS vs PNG)
+        function switchView(view) {
+            currentView = view;
+            const cssCard = document.getElementById("live-snapshot-card");
+            const pngContainer = document.getElementById("png-image-container");
+            const btnCss = document.getElementById("btn-view-css");
+            const btnPng = document.getElementById("btn-view-png");
+
+            if (view === 'css') {
+                cssCard.style.display = "block";
+                pngContainer.style.display = "none";
+                btnCss.classList.add("active");
+                btnPng.classList.remove("active");
+            } else {
+                cssCard.style.display = "none";
+                pngContainer.style.display = "block";
+                btnCss.classList.remove("active");
+                btnPng.classList.add("active");
+            }
+        }
+
+        // Render Bottom Gallery
+        function renderGalleryGrid() {
+            const gallery = document.getElementById("gallery-grid");
+            gallery.innerHTML = "";
+
+            Object.keys(THEMES_DATA).forEach(key => {
+                const theme = THEMES_DATA[key];
+                const pngFileName = `template-${key}.png`;
+                const pngPath = assetPrefix + pngFileName;
+
+                const card = document.createElement("div");
+                card.className = "gallery-card";
+                card.innerHTML = `
+                    <div class="gallery-card-thumb" onclick="selectDayAndScroll('${key}')">
+                        <img src="${pngPath}" alt="Template ${theme.day}" loading="lazy" onerror="handlePngError(this)">
+                    </div>
+                    <div class="gallery-card-body">
+                        <div class="gallery-card-title">
+                            <span>${theme.day}</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-gold-light);">${theme.type.split('/')[0]}</span>
+                        </div>
+                        <p class="gallery-card-desc">${theme.concept}</p>
+                        <div class="gallery-card-actions">
+                            <button type="button" class="btn-inspect" onclick="selectDayAndScroll('${key}')">Inspeksi Tema</button>
+                            <a href="${pngPath}" download="${pngFileName}" class="btn-download-thumb">Unduh PNG</a>
+                        </div>
+                    </div>
+                `;
+                gallery.appendChild(card);
+            });
+        }
+
+        function selectDayAndScroll(key) {
+            selectDay(key);
+            window.scrollTo({ top: 120, behavior: "smooth" });
+        }
+
+        function copyHex(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const toast = document.getElementById("toast");
+                toast.textContent = `Kode ${code} disalin ke clipboard!`;
+                toast.classList.add("show");
+                setTimeout(() => toast.classList.remove("show"), 2200);
+            });
+        }
+
+        function handlePngError(img) {
+            // If prefix failed or image not found, try fallback
+            if (!img.dataset.retried) {
+                img.dataset.retried = "true";
+                img.src = img.src.includes('preview_templates/') ? img.src.replace('preview_templates/', '') : 'preview_templates/' + img.src;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>

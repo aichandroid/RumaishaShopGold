@@ -1,6 +1,8 @@
 // Papan Harga Emas Harian & Snapshot WhatsApp for Rumaisho Gold
-import { formatDateIndo, formatFullDateIndo, formatRupiah, formatRibuanInput, parseRibuan, setupRibuanInput, hexToRgb, GREEN_THEMES, getExportFilename } from './utils.js';
+import { formatDateIndo, formatFullDateIndo, formatRupiah, formatRibuanInput, parseRibuan, setupRibuanInput, hexToRgb, GREEN_THEMES, DAILY_GOLD_THEMES, getDailyThemeForDate, getExportFilename } from './utils.js';
 import { openModal, closeModal, showConfirmSubmitModal } from './ui.js';
+
+let currentActiveThemeObj = null;
 
 export function setupHargaEmasEventListeners(db, onMutate) {
     const openAddBtn = document.getElementById("open-add-harga-modal");
@@ -95,6 +97,22 @@ export function setupHargaEmasEventListeners(db, onMutate) {
         });
     }
 
+    const selectHargaEmasTheme = document.getElementById("select-harga-emas-theme");
+    if (selectHargaEmasTheme) {
+        selectHargaEmasTheme.addEventListener("change", () => {
+            const filterDate = document.getElementById("filter-harga-tanggal")?.value;
+            const todayStr = new Date().toISOString().split("T")[0];
+            const val = selectHargaEmasTheme.value;
+            let theme;
+            if (val === "auto") {
+                theme = getDailyThemeForDate(filterDate || todayStr);
+            } else {
+                theme = DAILY_GOLD_THEMES[val] || getDailyThemeForDate(filterDate || todayStr);
+            }
+            applyGoldPriceTheme(theme);
+        });
+    }
+
     const btnSnapshotWa = document.getElementById("btn-snapshot-wa");
     if (btnSnapshotWa) {
         btnSnapshotWa.addEventListener("click", takeGoldPricesSnapshot);
@@ -111,8 +129,16 @@ export async function renderHargaEmasTable(db) {
     const filterDate = document.getElementById("filter-harga-tanggal")?.value;
     const list = await db.getHargaEmas(filterDate || null);
 
-    const activeColor = await db.getHargaEmasThemeColor();
-    applyGoldPriceTheme(activeColor);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const selectTheme = document.getElementById("select-harga-emas-theme");
+    const themeVal = selectTheme ? selectTheme.value : "auto";
+    let activeTheme;
+    if (!themeVal || themeVal === "auto") {
+        activeTheme = getDailyThemeForDate(filterDate || todayStr);
+    } else {
+        activeTheme = DAILY_GOLD_THEMES[themeVal] || getDailyThemeForDate(filterDate || todayStr);
+    }
+    applyGoldPriceTheme(activeTheme);
 
     const badge = document.getElementById("gold-prices-date-badge");
     if (badge) {
@@ -294,39 +320,51 @@ export function setupPriceTemplateEventListener(db) {
     });
 }
 
-export function applyGoldPriceTheme(hex) {
-    const pageEl = document.getElementById("page-harga-emas");
-    if (!pageEl) return;
+export function applyGoldPriceTheme(theme) {
+    const area = document.getElementById("gold-prices-snapshot-area");
+    if (!area) return;
 
-    pageEl.style.setProperty("--harga-emas-theme", hex);
-    
-    const rgb = hexToRgb(hex);
-    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-    const isLight = brightness >= 140;
-
-    if (isLight) {
-        pageEl.style.setProperty("--harga-emas-bg", hex);
-        pageEl.style.setProperty("--harga-emas-text", "#0c1d1a");
-        pageEl.style.setProperty("--harga-emas-border", "rgba(12, 29, 26, 0.15)");
-        pageEl.style.setProperty("--harga-emas-accent", "#755600");
-        pageEl.style.setProperty("--harga-emas-badge-bg", "rgba(0, 0, 0, 0.05)");
-        pageEl.style.setProperty("--harga-emas-header-bg", "rgba(12, 29, 26, 0.85)");
-        pageEl.style.setProperty("--harga-emas-header-text", "#ffffff");
-        pageEl.style.setProperty("--harga-emas-td-bg", "rgba(255, 255, 255, 0.25)");
-        pageEl.style.setProperty("--harga-emas-shadow", "none");
-        pageEl.style.setProperty("--harga-emas-watermark", "rgba(12, 29, 26, 0.35)");
-    } else {
-        pageEl.style.setProperty("--harga-emas-bg", hex);
-        pageEl.style.setProperty("--harga-emas-text", "#f0fbf9");
-        pageEl.style.setProperty("--harga-emas-border", "rgba(240, 251, 249, 0.15)");
-        pageEl.style.setProperty("--harga-emas-accent", "#d4af37");
-        pageEl.style.setProperty("--harga-emas-badge-bg", "rgba(255, 255, 255, 0.05)");
-        pageEl.style.setProperty("--harga-emas-header-bg", "rgba(0, 0, 0, 0.45)");
-        pageEl.style.setProperty("--harga-emas-header-text", "#d4af37");
-        pageEl.style.setProperty("--harga-emas-td-bg", "rgba(0, 0, 0, 0.15)");
-        pageEl.style.setProperty("--harga-emas-shadow", "0 0 10px rgba(212, 175, 55, 0.3)");
-        pageEl.style.setProperty("--harga-emas-watermark", "rgba(212, 175, 55, 0.3)");
+    let t = theme;
+    if (typeof theme === "string") {
+        if (theme === "auto") {
+            const filterDate = document.getElementById("filter-harga-tanggal")?.value;
+            const todayStr = new Date().toISOString().split("T")[0];
+            t = getDailyThemeForDate(filterDate || todayStr);
+        } else if (DAILY_GOLD_THEMES[theme.toLowerCase()]) {
+            t = DAILY_GOLD_THEMES[theme.toLowerCase()];
+        } else {
+            t = DAILY_GOLD_THEMES.senin;
+        }
+    } else if (!theme || typeof theme !== "object") {
+        t = DAILY_GOLD_THEMES.senin;
     }
+
+    currentActiveThemeObj = t;
+
+    area.style.setProperty("--gp-bg-gradient", `linear-gradient(180deg, ${t.bg_grad_top} 0%, ${t.bg_grad_bottom} 100%)`);
+    area.style.setProperty("--gp-bg-solid", t.bg_grad_top);
+    area.style.setProperty("--gp-card-border", t.card_border);
+    area.style.setProperty("--gp-banner-bg", t.banner_bg);
+    area.style.setProperty("--gp-date-badge-bg", t.date_badge_bg);
+    area.style.setProperty("--gp-date-badge-border", t.date_badge_border);
+    area.style.setProperty("--gp-date-badge-text", t.date_badge_text);
+    area.style.setProperty("--gp-control-bar-bg", t.control_bar_bg);
+    area.style.setProperty("--gp-control-bar-border", t.control_bar_border);
+    area.style.setProperty("--gp-control-bar-label", t.control_bar_label);
+    area.style.setProperty("--gp-table-container-bg", t.table_container_bg);
+    area.style.setProperty("--gp-table-container-border", t.table_container_border);
+    area.style.setProperty("--gp-table-header-bg", t.table_header_bg);
+    area.style.setProperty("--gp-table-header-text", t.table_header_text);
+    area.style.setProperty("--gp-table-header-border-bottom", t.table_header_border_bottom);
+    area.style.setProperty("--gp-row-bg1", t.row_bg1);
+    area.style.setProperty("--gp-row-bg2", t.row_bg2);
+    area.style.setProperty("--gp-row-border", t.row_border);
+    area.style.setProperty("--gp-gram-text", t.gram_text);
+    area.style.setProperty("--gp-harga-text", t.harga_text);
+    area.style.setProperty("--gp-badge-bg", t.badge_bg);
+    area.style.setProperty("--gp-badge-border", t.badge_border);
+    area.style.setProperty("--gp-badge-text", t.badge_text);
+    area.style.setProperty("--gp-watermark", t.watermark);
 }
 
 export async function setupThemeColorPicker(db) {
@@ -367,10 +405,11 @@ export async function takeGoldPricesSnapshot() {
     await new Promise(r => setTimeout(r, 120));
 
     try {
+        const activeBg = currentActiveThemeObj ? currentActiveThemeObj.bg_grad_top : (area.style.getPropertyValue('--gp-bg-solid') || "#1A2C26");
         const canvas = await html2canvas(area, {
             useCORS: true,
             allowTaint: true,
-            backgroundColor: "#062621",
+            backgroundColor: activeBg,
             scale: 2,
             logging: false
         });

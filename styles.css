@@ -1624,9 +1624,9 @@ body.authenticated #login-screen {
 .gold-prices-snapshot-wrapper {
     width: 100%;
     max-width: 780px;
-    border: 2px solid #C6A15B;
+    border: 2px solid var(--gp-card-border, #8BA396);
     border-radius: var(--radius-lg);
-    background: linear-gradient(180deg, #062621 0%, #092C25 100%);
+    background: var(--gp-bg-gradient, linear-gradient(180deg, #1A2C26 0%, #13221E 100%));
     overflow: hidden;
     position: relative;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -1635,9 +1635,9 @@ body.authenticated #login-screen {
 .gold-prices-banner-container {
     width: 100%;
     text-align: center;
-    background-color: #062621;
+    background-color: var(--gp-banner-bg, #13221E);
     padding: 1.25rem 1rem;
-    border-bottom: 1px solid rgba(198, 161, 91, 0.25);
+    border-bottom: 1px solid var(--gp-card-border, rgba(139, 163, 150, 0.3));
 }
 
 .gold-prices-banner {
@@ -1652,22 +1652,23 @@ body.authenticated #login-screen {
     text-align: center;
     font-size: 0.95rem;
     font-weight: 700;
-    color: #F7DF94; /* Bright metallic gold */
+    color: var(--gp-date-badge-text, #FCE69B);
     padding: 0.6rem 1rem;
     margin: 1rem 1rem 0;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(198, 161, 91, 0.35);
+    background: var(--gp-date-badge-bg, #253E36);
+    border: 1px solid var(--gp-date-badge-border, #3D5C52);
     border-radius: var(--radius-md);
     letter-spacing: 0.02em;
 }
 
 .gold-prices-control-bar {
-    background-color: rgba(0, 0, 0, 0.35);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: var(--gp-control-bar-bg, rgba(0, 0, 0, 0.35));
+    border-bottom: 1px solid var(--gp-control-bar-border, rgba(255, 255, 255, 0.08));
     padding: 0.75rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin-top: 0.75rem;
 }
@@ -1680,7 +1681,7 @@ body.authenticated #login-screen {
 
 .filter-group label {
     font-weight: 600;
-    color: #F7DF94;
+    color: var(--gp-control-bar-label, #FCE69B);
     font-size: 0.85rem;
 }
 
@@ -1689,9 +1690,25 @@ body.authenticated #login-screen {
     font-size: 0.85rem;
     width: auto;
     background-color: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(198, 161, 91, 0.4);
-    color: #FFFFFF;
+    border: 1px solid var(--gp-card-border, rgba(139, 163, 150, 0.4));
+    color: var(--gp-control-bar-label, #FFFFFF);
     border-radius: var(--radius-sm);
+}
+
+.theme-select-sm {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+    width: auto;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--gp-card-border, rgba(139, 163, 150, 0.4));
+    color: var(--gp-control-bar-label, #FFFFFF);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.theme-select-sm option {
+    background-color: #1A2C26;
+    color: #FFFFFF;
 }
 
 .gold-price-content-area {
@@ -1701,8 +1718,8 @@ body.authenticated #login-screen {
 }
 
 .gold-price-content-area .table-container {
-    background: rgba(0, 0, 0, 0.25) !important;
-    border: 1px solid rgba(198, 161, 91, 0.3) !important;
+    background: var(--gp-table-container-bg, #0E1916) !important;
+    border: 1px solid var(--gp-table-container-border, #3D5C52) !important;
     border-radius: var(--radius-md);
     overflow: hidden;
     width: 100%;
@@ -1717,24 +1734,24 @@ body.authenticated #login-screen {
 }
 
 #harga-emas-table th {
-    background-color: rgba(0, 0, 0, 0.65) !important;
-    color: #F7DF94 !important; /* Bright Champagne Gold */
+    background-color: var(--gp-table-header-bg, #0E1916) !important;
+    color: var(--gp-table-header-text, #E2EDE7) !important;
     font-weight: 700 !important;
     font-size: 0.82rem !important;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 0.65rem 0.4rem;
-    border-bottom: 2px solid #C6A15B !important;
+    border-bottom: 2px solid var(--gp-table-header-border-bottom, #8BA396) !important;
     border-top: none !important;
     border-left: none !important;
     border-right: none !important;
 }
 
 #harga-emas-table td {
-    background-color: rgba(255, 255, 255, 0.02) !important;
-    color: #FFFFFF !important; /* High contrast pure white */
+    background-color: var(--gp-row-bg1, #1E332D) !important;
+    color: var(--gp-gram-text, #FFFFFF) !important;
     padding: 0.6rem 0.4rem;
-    border-bottom: 1px solid rgba(198, 161, 91, 0.15) !important;
+    border-bottom: 1px solid var(--gp-row-border, #263E36) !important;
     border-top: none !important;
     border-left: none !important;
     border-right: none !important;
@@ -1743,31 +1760,31 @@ body.authenticated #login-screen {
 }
 
 #harga-emas-table tr:nth-child(even) td {
-    background-color: rgba(0, 0, 0, 0.22) !important;
+    background-color: var(--gp-row-bg2, #172A24) !important;
 }
 
 #harga-emas-table td strong {
-    color: #FFFFFF !important;
+    color: var(--gp-gram-text, #FFFFFF) !important;
     font-weight: 700;
     font-size: 0.92rem;
 }
 
 /* Price text styling with super high contrast */
 #harga-emas-table .price-display {
-    color: #F7DF94 !important; /* High contrast bright gold */
+    color: var(--gp-harga-text, #FCE69B) !important;
     font-weight: 800 !important;
     font-size: 0.96rem;
     letter-spacing: 0.01em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    text-shadow: none;
 }
 
 #harga-emas-table .price-edit-input {
     width: 100%;
     max-width: 130px;
-    background: rgba(0, 0, 0, 0.55);
-    border: 1px solid #C6A15B;
+    background: var(--gp-table-container-bg, #0E1916);
+    border: 1px solid var(--gp-card-border, #8BA396);
     border-radius: var(--radius-sm);
-    color: #F7DF94;
+    color: var(--gp-harga-text, #FCE69B);
     font-size: 0.88rem;
     font-weight: 700;
     text-align: right;
@@ -1780,15 +1797,15 @@ body.authenticated #login-screen {
 
 #harga-emas-table .price-edit-input:focus {
     border-color: #FFFFFF;
-    box-shadow: 0 0 0 2px rgba(198, 161, 91, 0.4);
+    box-shadow: 0 0 0 2px var(--gp-card-border, #8BA396);
 }
 
 /* Precious Metal (Logam Mulia) badge styling */
 #harga-emas-table .badge,
 #harga-emas-table .badge-gold-item {
-    background-color: rgba(198, 161, 91, 0.22) !important;
-    border: 1px solid rgba(212, 175, 55, 0.6) !important;
-    color: #FFFFFF !important; /* Pure white text */
+    background-color: var(--gp-badge-bg, #0A1612) !important;
+    border: 1px solid var(--gp-badge-border, #C5A558) !important;
+    color: var(--gp-badge-text, #FFFFFF) !important;
     font-weight: 700 !important;
     font-size: 0.76rem !important;
     padding: 0.2rem 0.45rem !important;
@@ -1870,7 +1887,7 @@ body.authenticated #login-screen {
     text-align: center;
     padding: 0.75rem 0;
     font-size: 0.75rem;
-    color: rgba(247, 223, 148, 0.6);
+    color: var(--gp-watermark, #8BA396);
     font-weight: 700;
     letter-spacing: 0.05em;
 }
@@ -1883,23 +1900,25 @@ body.html2canvas-container .gold-prices-snapshot-wrapper {
     width: 500px !important;
     max-width: 500px !important;
     min-width: 500px !important;
-    border: 2px solid #C6A15B !important;
-    background: #062621 !important;
+    border: 2px solid var(--gp-card-border, #8BA396) !important;
+    background: var(--gp-bg-gradient, #1A2C26) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
 }
 
 body.html2canvas-container .gold-prices-banner-container {
     display: block !important;
-    background-color: #062621 !important;
+    background-color: var(--gp-banner-bg, #13221E) !important;
     padding: 1.25rem 1rem !important;
+    border-bottom: 1px solid var(--gp-card-border, rgba(139, 163, 150, 0.3)) !important;
 }
 
 body.html2canvas-container .gold-prices-date-badge {
     margin: 0.85rem 1rem 0 !important;
     font-size: 0.95rem !important;
-    background: rgba(0, 0, 0, 0.45) !important;
-    color: #F7DF94 !important;
+    background: var(--gp-date-badge-bg, #253E36) !important;
+    border: 1px solid var(--gp-date-badge-border, #3D5C52) !important;
+    color: var(--gp-date-badge-text, #FCE69B) !important;
 }
 
 body.html2canvas-container .gold-price-content-area {
@@ -1911,8 +1930,8 @@ body.html2canvas-container .gold-price-content-area {
 body.html2canvas-container .table-container {
     overflow: hidden !important;
     width: 100% !important;
-    border: 1px solid rgba(198, 161, 91, 0.3) !important;
-    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid var(--gp-table-container-border, #3D5C52) !important;
+    background: var(--gp-table-container-bg, #0E1916) !important;
 }
 
 body.html2canvas-container #harga-emas-table {
@@ -1942,22 +1961,23 @@ body.html2canvas-container #harga-emas-table .col-logam {
 /* Snapshot unclipped full-visibility text for Logam Mulia */
 body.html2canvas-container #harga-emas-table .badge-gold-item,
 body.html2canvas-container #harga-emas-table .badge {
-    background: transparent !important;
-    border: none !important;
+    background-color: var(--gp-badge-bg, #0A1612) !important;
+    border: 1px solid var(--gp-badge-border, #C5A558) !important;
     box-shadow: none !important;
-    color: #FFFFFF !important;
+    color: var(--gp-badge-text, #FFFFFF) !important;
     font-weight: 700 !important;
-    font-size: 0.95rem !important;
+    font-size: 0.85rem !important;
     line-height: 1.4 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: block !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 6px !important;
+    display: inline-block !important;
     text-align: center !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
 }
 
 body.html2canvas-container .snapshot-watermark {
     display: block !important;
+    color: var(--gp-watermark, #8BA396) !important;
 }
 
 /* --------------------------------------------------------------------------
