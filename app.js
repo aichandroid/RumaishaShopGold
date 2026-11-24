@@ -1,5 +1,5 @@
 // Application Main Orchestrator for Rumaisho Gold
-import { GoldDatabase } from './db.js?v=3.0';
+import { GoldDatabase } from './db.js?v=3.1';
 import {
     openModal,
     closeModal,
@@ -21,8 +21,8 @@ import {
 import { setupPembelianForm, renderPembelianTable } from './modules/pembelian.js';
 import { setupPenjualanForm, renderPenjualanTable } from './modules/penjualan.js';
 import { setupStokEventListeners, renderStokEmasTable } from './modules/stok.js';
-import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker, applyGoldPriceTheme } from './modules/harga-emas.js?v=3.0';
-import { getDailyThemeForDate } from './modules/utils.js?v=3.0';
+import { setupHargaEmasEventListeners, renderHargaEmasTable, setupThemeColorPicker, applyGoldPriceTheme } from './modules/harga-emas.js?v=3.1';
+import { getDailyThemeForDate } from './modules/utils.js?v=3.1';
 import { loadDashboardData, setupRecapTabEventListeners } from './modules/dashboard.js';
 import { setupExportEventListeners, setupImportEventListeners } from './modules/export-import.js';
 import { setupSettingsEventListeners, loadSettingsData } from './modules/settings.js';
@@ -67,7 +67,11 @@ async function initApp() {
     // 1. Setup Status DB & Topbar Date
     updateDatabaseStatusUI(db);
     updateTopBarDate();
-    applyGoldPriceTheme(getDailyThemeForDate());
+    try {
+        applyGoldPriceTheme(getDailyThemeForDate());
+    } catch (err) {
+        console.warn("Gold price theme init skipped:", err);
+    }
 
     // Set Default Dates to Today's date on Inputs
     const todayStr = new Date().toISOString().split("T")[0];
@@ -116,8 +120,8 @@ async function initApp() {
     await loadDashboardData(db);
 }
 
-// DOMContentLoaded Entrypoint
-document.addEventListener("DOMContentLoaded", async () => {
+// App Bootstrap Sequence
+function bootstrapApp() {
     setupLoginEventListeners(db, async () => {
         if (!appInitialized) {
             await initApp();
@@ -132,12 +136,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (isAuthenticated()) {
         document.body.classList.add("authenticated");
-        await initApp();
-        appInitialized = true;
-        startInactivityTracker();
+        initApp().then(() => {
+            appInitialized = true;
+            startInactivityTracker();
+        }).catch(err => {
+            console.error("Failed to initApp:", err);
+        });
     } else {
         document.body.classList.remove("authenticated");
         handleLoginPinClear();
         focusLoginPinInput();
     }
-});
+}
+
+// Entrypoint: handles both loading and interactive/complete DOM states safely
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootstrapApp);
+} else {
+    bootstrapApp();
+}

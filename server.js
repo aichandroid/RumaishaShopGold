@@ -669,6 +669,14 @@ app.use(express.static(__dirname, {
   dotfiles: 'deny',
 }));
 
+// Also serve built static assets from dist if present
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: 0,
+  etag: true,
+  lastModified: true,
+  dotfiles: 'deny',
+}));
+
 // Fallback to index.html for root or SPA navigation
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

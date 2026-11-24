@@ -233,7 +233,11 @@ export async function submitLoginPin(db, onLoginSuccess) {
                 }
 
                 if (typeof onLoginSuccess === "function") {
-                    await onLoginSuccess();
+                    try {
+                        await onLoginSuccess();
+                    } catch (err) {
+                        console.error("Error during onLoginSuccess:", err);
+                    }
                 }
 
                 startInactivityTracker();

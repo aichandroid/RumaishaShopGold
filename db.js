@@ -305,23 +305,22 @@ export class GoldDatabase {
 
     // --- PIN Management ---
     async getPin() {
-        if (this.isSelfHosted) {
-            try {
-                const res = await fetch("/api/settings");
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.pin) {
-                        if (data.pin === "1234") {
-                            await this.updatePin(DEFAULT_PIN);
-                            return DEFAULT_PIN;
-                        }
-                        localStorage.setItem("rumaisho_pin", data.pin);
-                        return data.pin;
+        try {
+            const res = await fetch("/api/settings");
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.pin) {
+                    this.isSelfHosted = true;
+                    if (data.pin === "1234") {
+                        await this.updatePin(DEFAULT_PIN);
+                        return DEFAULT_PIN;
                     }
+                    localStorage.setItem("rumaisho_pin", data.pin);
+                    return data.pin;
                 }
-            } catch (e) {
-                console.error("Error fetching PIN from API:", e);
             }
+        } catch (e) {
+            // Self-hosted API not available or unreachable
         }
         const client = this.getSupabase();
         if (client) {
